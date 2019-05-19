@@ -37,9 +37,10 @@ func main() {
 
 	fmt.Println(wordVectorizer.GetData())
 
-	termFrequency := term_frequency.New(term_frequency.TermFrequencyConfig{Binary: false})
-
-	termFrequency.SetVectorizedWord(wordVectorizer.GetData())
+	termFrequency := term_frequency.New(term_frequency.TermFrequencyConfig{
+		Binary:         false,
+		VectorizedWord: wordVectorizer.GetData(),
+	})
 
 	err = termFrequency.Learn(wordVectorizer.GetCleanedCorpus())
 
@@ -47,4 +48,5 @@ func main() {
 		panic(err)
 	}
 
+	fmt.Println(termFrequency.GetData())
 }

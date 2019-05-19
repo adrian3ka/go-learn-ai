@@ -22,7 +22,7 @@ type WordVectorizerConfig struct {
 }
 
 func New(vectorizer WordVectorizerConfig) WordVectorizer {
-	cv := WordVectorizer{
+	wv := WordVectorizer{
 		lower: vectorizer.Lower,
 		regexReplacers: []RegexReplacer{
 			{Pattern: `[^a-zA-Z0-9 ]+`, Replacer: ``},
@@ -30,19 +30,18 @@ func New(vectorizer WordVectorizerConfig) WordVectorizer {
 		},
 	}
 
-	cv.data = make(map[string]uint64)
-	cv.cleanedCorpuses = make(map[string][]string)
+	wv.data = make(map[string]uint64)
+	wv.cleanedCorpuses = make(map[string][]string)
 
-	return cv
+	return wv
 }
 
-func (cv *WordVectorizer) Learn(corpuses map[string][]string) error {
+func (wv *WordVectorizer) Learn(corpuses map[string][]string) error {
 	for corpusClass, corpus := range corpuses {
-		var cleanedCorpus []string
 		for _, document := range corpus {
 			cleanedDocument := strings.ToLower(document)
 
-			for _, regexReplacer := range cv.regexReplacers {
+			for _, regexReplacer := range wv.regexReplacers {
 				reg, err := regexp.Compile(regexReplacer.Pattern)
 
 				if err != nil {
@@ -54,28 +53,21 @@ func (cv *WordVectorizer) Learn(corpuses map[string][]string) error {
 
 			tokenizeWords := strings.Split(cleanedDocument, " ")
 			for _, word := range tokenizeWords {
-				if _, exists := cv.data[word]; !exists {
-					cv.data[word] = uint64(len(cv.data))
+				if _, exists := wv.data[word]; !exists {
+					wv.data[word] = uint64(len(wv.data))
 				}
 			}
 
-		}
-
-		if _, exists := cv.cleanedCorpuses[corpusClass]; !exists {
-			cv.cleanedCorpuses[corpusClass] = cleanedCorpus
-		} else {
-			for _, cc := range cleanedCorpus {
-				cv.cleanedCorpuses[corpusClass] = append(cv.cleanedCorpuses[corpusClass], cc)
-			}
+			wv.cleanedCorpuses[corpusClass] = append(wv.cleanedCorpuses[corpusClass], cleanedDocument)
 		}
 	}
 	return nil
 }
 
-func (cv *WordVectorizer) GetData() map[string]uint64 {
-	return cv.data
+func (wv *WordVectorizer) GetData() map[string]uint64 {
+	return wv.data
 }
 
-func (cv *WordVectorizer) GetCleanedCorpus() map[string][]string {
-	return cv.cleanedCorpuses
+func (wv *WordVectorizer) GetCleanedCorpus() map[string][]string {
+	return wv.cleanedCorpuses
 }
