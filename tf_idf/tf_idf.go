@@ -13,7 +13,7 @@ type TermFrequencyInverseDocumentFrequency struct {
 	smooth                   bool
 	inverseDocumentFrequency []float64
 	documentFrequency        []uint64
-	data                     map[string][][]uint64
+	data                     map[string][][]float64
 	totalDocument            uint64
 	termFrequency            map[string][][]uint64
 }
@@ -29,7 +29,7 @@ func New(config TermFrequencyInverseDocumentFrequencyConfig) (TermFrequencyInver
 		termFrequency: config.TermFrequency,
 	}
 
-	tfidf.data = make(map[string][][]uint64)
+	tfidf.data = make(map[string][][]float64)
 
 	//Check Document Length
 	var documentLength uint64
@@ -76,6 +76,17 @@ func (tfidf *TermFrequencyInverseDocumentFrequency) Fit() error {
 		tfidf.inverseDocumentFrequency[idx] = math.Log(float64(numerator/denominator)) + 1
 	}
 
+	for corpusClass, corpuses := range tfidf.termFrequency {
+		for _, corpus := range corpuses {
+			var newTfIdf []float64
+			newTfIdf = make([]float64, len(corpus))
+			for idx, word := range corpus {
+				newTfIdf[idx] = float64(word) * tfidf.inverseDocumentFrequency[idx]
+			}
+			tfidf.data[corpusClass] = append(tfidf.data[corpusClass], newTfIdf)
+		}
+	}
+
 	return nil
 }
 
@@ -87,6 +98,6 @@ func (tfidf *TermFrequencyInverseDocumentFrequency) GetDocumentFrequency() []uin
 	return tfidf.documentFrequency
 }
 
-func (tfidf *TermFrequencyInverseDocumentFrequency) GetData() map[string][][]uint64 {
+func (tfidf *TermFrequencyInverseDocumentFrequency) GetData() map[string][][]float64 {
 	return tfidf.data
 }
