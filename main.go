@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/adrian/go-learn-ai/term_frequency"
+	"github.com/adrian/go-learn-ai/tf_idf"
 	"github.com/adrian/go-learn-ai/word_vectorizer"
 )
 
@@ -49,4 +50,19 @@ func main() {
 	}
 
 	fmt.Println(termFrequency.GetData())
+
+	tfIdf, err := tf_idf.New(tf_idf.TermFrequencyInverseDocumentFrequencyConfig{
+		Smooth:        true,
+		TermFrequency: termFrequency.GetData(),
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = tfIdf.Fit()
+
+	if err != nil {
+		panic(err)
+	}
 }
