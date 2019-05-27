@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/adrian/go-learn-ai/naive_bayes"
 	"github.com/adrian/go-learn-ai/term_frequency"
 	"github.com/adrian/go-learn-ai/tf_idf"
 	"github.com/adrian/go-learn-ai/word_vectorizer"
@@ -36,11 +37,11 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(wordVectorizer.GetData())
+	fmt.Println(wordVectorizer.GetVectorizedWord())
 
 	termFrequency := term_frequency.New(term_frequency.TermFrequencyConfig{
 		Binary:         false,
-		VectorizedWord: wordVectorizer.GetData(),
+		WordVectorizer: wordVectorizer,
 	})
 
 	err = termFrequency.Learn(wordVectorizer.GetCleanedCorpus())
@@ -49,11 +50,12 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(termFrequency.GetData())
+	fmt.Println(termFrequency.VectorizedCounter())
 
 	tfIdf, err := tf_idf.New(tf_idf.TermFrequencyInverseDocumentFrequencyConfig{
-		Smooth:        true,
-		TermFrequency: termFrequency.GetData(),
+		Smooth:          true,
+		NormalizerType:  tf_idf.EuclideanSumSquare,
+		CountVectorizer: termFrequency,
 	})
 
 	if err != nil {
@@ -67,5 +69,20 @@ func main() {
 	}
 
 	fmt.Println(tfIdf.GetInverseDocumentFrequency())
-	fmt.Println(tfIdf.GetData())
+	fmt.Println(tfIdf.GetDocumentFrequency())
+	fmt.Println(tfIdf.GetTrainedData())
+
+	multinomialNB := naive_bayes.NewMultinomialNaiveBayes(naive_bayes.MultinomialNaiveBayesConfig{
+		Evaluator: tfIdf,
+	})
+
+	predicted, err := multinomialNB.Predict([]string{
+		"mAu belI tiket kEreta doNg",
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(predicted)
 }

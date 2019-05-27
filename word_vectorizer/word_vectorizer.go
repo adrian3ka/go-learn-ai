@@ -39,16 +39,11 @@ func New(vectorizer WordVectorizerConfig) WordVectorizer {
 func (wv *WordVectorizer) Learn(corpuses map[string][]string) error {
 	for corpusClass, corpus := range corpuses {
 		for _, document := range corpus {
-			cleanedDocument := strings.ToLower(document)
 
-			for _, regexReplacer := range wv.regexReplacers {
-				reg, err := regexp.Compile(regexReplacer.Pattern)
+			cleanedDocument, err := wv.Normalize(document)
 
-				if err != nil {
-					return err
-				}
-
-				cleanedDocument = reg.ReplaceAllString(cleanedDocument, regexReplacer.Replacer)
+			if err != nil {
+				return err
 			}
 
 			tokenizeWords := strings.Split(cleanedDocument, " ")
@@ -64,7 +59,24 @@ func (wv *WordVectorizer) Learn(corpuses map[string][]string) error {
 	return nil
 }
 
-func (wv *WordVectorizer) GetData() map[string]uint64 {
+func (wv WordVectorizer) Normalize(document string) (string, error) {
+	if wv.lower {
+		document = strings.ToLower(document)
+	}
+
+	for _, regexReplacer := range wv.regexReplacers {
+		reg, err := regexp.Compile(regexReplacer.Pattern)
+
+		if err != nil {
+			return "", err
+		}
+
+		document = reg.ReplaceAllString(document, regexReplacer.Replacer)
+	}
+	return document, nil
+}
+
+func (wv WordVectorizer) GetVectorizedWord() map[string]uint64 {
 	return wv.data
 }
 
