@@ -1,6 +1,12 @@
 package naive_bayes
 
-import "fmt"
+import (
+	"math"
+)
+
+const (
+	CONSTANT = 1
+)
 
 type EvaluatorInterface interface {
 	EvaluateInput(input interface{}) ([][]float64, error)
@@ -26,21 +32,37 @@ func NewMultinomialNaiveBayes(cfg MultinomialNaiveBayesConfig) MultinomialNaiveB
 	return multinomialNaiveBayes
 }
 
-func (nb MultinomialNaiveBayes) Predict(input interface{}) (map[string]float64, error) {
-	var predictedValue = make(map[string]float64)
-
-	evaluatedInput, err := nb.evaluator.EvaluateInput(input)
+func (nb MultinomialNaiveBayes) Predict(inputs interface{}) ([]map[string]float64, error) {
+	evaluatedInputs, err := nb.evaluator.EvaluateInput(inputs)
 
 	if err != nil {
 		return nil, err
 	}
 
-	fmt.Println(evaluatedInput)
-	for corpusClass, corpuses := range nb.evaluator.GetTrainedData() {
-		fmt.Println(corpusClass, corpuses)
+	var allPrediction []map[string]float64
 
-		fmt.Println(nb.evaluator.GetSumDataOfClass(corpusClass), nb.evaluator.GetSumVectorDataOfClass(corpusClass))
+	for _, evaluatedInput := range evaluatedInputs {
+		var predictedClass = make(map[string]float64)
+		denominator := float64(0)
+		for corpusClass, _ := range nb.evaluator.GetTrainedData() {
+			predictedClassValue := float64(1)
+			totalValueForClass := nb.evaluator.GetSumDataOfClass(corpusClass)
+			dictionaryLength := float64(len(nb.evaluator.GetDictionary()))
+
+			for idx, val := range nb.evaluator.GetSumVectorDataOfClass(corpusClass) {
+				predictedWordValue := math.Pow((val+CONSTANT)/(totalValueForClass+dictionaryLength), evaluatedInput[idx])
+				predictedClassValue *= predictedWordValue
+			}
+
+			denominator += predictedClassValue
+			predictedClass[corpusClass] = predictedClassValue
+		}
+
+		for corpusClass, predictedValue := range predictedClass {
+			predictedClass[corpusClass] = predictedValue / denominator
+		}
+		allPrediction = append(allPrediction, predictedClass)
 	}
 
-	return predictedValue, nil
+	return allPrediction, nil
 }
