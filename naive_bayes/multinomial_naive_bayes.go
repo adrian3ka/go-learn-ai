@@ -61,6 +61,7 @@ func (nb MultinomialNaiveBayes) Predict(inputs interface{}) ([]map[string]float6
 		for corpusClass, predictedValue := range predictedClass {
 			predictedClass[corpusClass] = predictedValue / denominator
 		}
+		
 		allPrediction = append(allPrediction, predictedClass)
 	}
 

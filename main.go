@@ -78,6 +78,8 @@ func main() {
 
 	predicted, err := multinomialNB.Predict([]string{
 		"mAu belI tiket kEreta doNg",
+		"jual pulsa ga ya?",
+		"mau beli tiket kereta pake pulsa bisa?",
 	})
 
 	if err != nil {
