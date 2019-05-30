@@ -3,12 +3,16 @@ package main
 import (
 	"fmt"
 	"github.com/adrian/go-learn-ai/naive_bayes"
+	"github.com/adrian/go-learn-ai/pos_tagger"
 	"github.com/adrian/go-learn-ai/term_frequency"
 	"github.com/adrian/go-learn-ai/tf_idf"
 	"github.com/adrian/go-learn-ai/word_vectorizer"
+	"io/ioutil"
+	"log"
 )
 
 func main() {
+	//============================= Classifier =====================================
 	wordVectorizer := word_vectorizer.New(word_vectorizer.WordVectorizerConfig{
 		Lower: true,
 	})
@@ -79,7 +83,7 @@ func main() {
 	predicted, err := multinomialNB.Predict([]string{
 		"mAu belI tiket kEreta doNg",
 		"jual pulsa ga ya?",
-		"mau beli tiket kereta pake pulsa bisa?",
+		"mau beli tiket kereta pake pulsa bisa ga ya?",
 	})
 
 	if err != nil {
@@ -87,4 +91,52 @@ func main() {
 	}
 
 	fmt.Println(predicted)
+
+	//=============================== POS Tagger =====================================
+	file, err := ioutil.ReadFile("tagged_corpus/Indonesian.txt")
+	if err != nil {
+		log.Fatal(err)
+	}
+	tuple := pos_tagger.StringToTuple(pos_tagger.StringToTupleInput{
+		Text:  string(file),
+		Lower: true,
+	})
+
+	text := "Halo nama ku Adrian . Saya baik dan tampan ."
+	defaultTagger := pos_tagger.NewDefaultTagger(pos_tagger.DefaultTaggerConfig{
+		DefaultTag: "nn",
+	})
+
+	err = defaultTagger.Learn(tuple.Tuple)
+
+	if err != nil {
+		panic(err)
+	}
+
+	predictedValue, err := defaultTagger.Predict(text)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(predictedValue)
+
+	regexTagger := pos_tagger.NewRegexTagger(pos_tagger.RegexTaggerConfig{
+		Patterns:      pos_tagger.DefaultIndonesianRegexTagger,
+		BackoffTagger: defaultTagger,
+	})
+
+	err = regexTagger.Learn(tuple.Tuple)
+
+	if err != nil {
+		panic(err)
+	}
+
+	predictedValue, err = regexTagger.Predict(text)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(predictedValue)
 }
