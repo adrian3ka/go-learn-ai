@@ -108,7 +108,7 @@ type RegexTaggerConfig struct {
 	BackoffTagger Tagger
 }
 
-func NewRegexTagger(cfg RegexTaggerConfig) RegexTagger {
+func NewRegexTagger(cfg RegexTaggerConfig) *RegexTagger {
 	var compliedPatterns []CompliedPattern
 	for _, pattern := range cfg.Patterns {
 		cp := CompliedPattern{
@@ -117,7 +117,7 @@ func NewRegexTagger(cfg RegexTaggerConfig) RegexTagger {
 		}
 		compliedPatterns = append(compliedPatterns, cp)
 	}
-	return RegexTagger{
+	return &RegexTagger{
 		compliedPatterns: compliedPatterns,
 		backoffTagger:    cfg.BackoffTagger,
 	}
