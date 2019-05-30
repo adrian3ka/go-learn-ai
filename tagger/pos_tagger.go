@@ -1,4 +1,4 @@
-package pos_tagger
+package tagger
 
 import (
 	"regexp"
@@ -6,6 +6,7 @@ import (
 )
 
 var DefaultIndonesianRegexTagger = [][2]string{
+	[2]string{`^-?[0-9]+(.[0-9]+)?$`, `cdp`},
 	[2]string{`meng[aiueokghx].+$`, `vb`},
 	[2]string{`mem[bpf]([a-df-z][a-qs-z]|er).+$`, `vb`},
 	[2]string{`me[lnryw](a-df-z).+$`, `vb`},
@@ -29,25 +30,41 @@ type StringToTupleInput struct {
 }
 
 type StringToTupleOutput struct {
-	Tuple [][]string
+	Tuple [][2]string
 }
 
 func StringToTuple(input StringToTupleInput) StringToTupleOutput {
 	splitedStrings := strings.Split(input.Text, " ")
-	var tuple [][]string
+	var tuple [][2]string
+
+	regexReplacers := [][2]string{
+		{`\s+`, ``},
+	}
 
 	for _, splitedString := range splitedStrings {
-		splittedWordAndTag := strings.Split(splitedString, "/")
+		var splittedWordAndTag [2]string
+		temp := strings.Split(splitedString, "/")
 
-		if len(splittedWordAndTag) != 2 {
+		if len(temp) != 2 {
 			continue
 		}
 
-		if input.Lower {
-			splittedWordAndTag[0] = strings.ToLower(splittedWordAndTag[0])
+		for _, regexReplacer := range regexReplacers {
+			reg, err := regexp.Compile(regexReplacer[0])
+
+			if err != nil {
+				continue
+			}
+
+			temp[1] = reg.ReplaceAllString(temp[1], regexReplacer[1])
+			temp[0] = reg.ReplaceAllString(temp[0], regexReplacer[1])
 		}
 
-		splittedWordAndTag[1] = strings.ToLower(splittedWordAndTag[1])
+		if input.Lower {
+			splittedWordAndTag[0] = strings.ToLower(temp[0])
+		}
+
+		splittedWordAndTag[1] = strings.ToLower(temp[1])
 
 		tuple = append(tuple, splittedWordAndTag)
 	}
@@ -58,8 +75,8 @@ func StringToTuple(input StringToTupleInput) StringToTupleOutput {
 }
 
 type Tagger interface {
-	Learn(tuple [][]string) error
-	Predict(text string) ([][]string, error)
+	Learn(tuple [][2]string) error
+	Predict(text string) ([][2]string, error)
 }
 
 type DefaultTagger struct {
@@ -76,16 +93,16 @@ func NewDefaultTagger(cfg DefaultTaggerConfig) *DefaultTagger {
 	}
 }
 
-func (n *DefaultTagger) Learn(tuple [][]string) error {
+func (n *DefaultTagger) Learn(tuple [][2]string) error {
 	return nil
 }
 
-func (n *DefaultTagger) Predict(text string) ([][]string, error) {
+func (n *DefaultTagger) Predict(text string) ([][2]string, error) {
 	splitedStrings := strings.Split(text, " ")
-	var tuple [][]string
+	var tuple [][2]string
 
 	for _, splitedString := range splitedStrings {
-		tuple = append(tuple, []string{
+		tuple = append(tuple, [2]string{
 			splitedString,
 			n.defaultTag,
 		})
@@ -123,13 +140,13 @@ func NewRegexTagger(cfg RegexTaggerConfig) *RegexTagger {
 	}
 }
 
-func (n *RegexTagger) Learn(tuple [][]string) error {
+func (n *RegexTagger) Learn(tuple [][2]string) error {
 	return nil
 }
 
-func (n *RegexTagger) Predict(text string) ([][]string, error) {
+func (n *RegexTagger) Predict(text string) ([][2]string, error) {
 	splitedStrings := strings.Split(text, " ")
-	var tuple [][]string
+	var tuple [][2]string
 	for _, splitedString := range splitedStrings {
 		var tag *string
 		for _, compiledPattern := range n.compliedPatterns {
@@ -153,7 +170,7 @@ func (n *RegexTagger) Predict(text string) ([][]string, error) {
 			x := ""
 			tag = &x
 		}
-		tuple = append(tuple, []string{
+		tuple = append(tuple, [2]string{
 			splitedString,
 			*tag,
 		})

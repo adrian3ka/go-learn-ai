@@ -3,7 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/adrian/go-learn-ai/naive_bayes"
-	"github.com/adrian/go-learn-ai/pos_tagger"
+	"github.com/adrian/go-learn-ai/tagger"
 	"github.com/adrian/go-learn-ai/term_frequency"
 	"github.com/adrian/go-learn-ai/tf_idf"
 	"github.com/adrian/go-learn-ai/word_vectorizer"
@@ -12,7 +12,7 @@ import (
 )
 
 func main() {
-	//============================= Classifier =====================================
+	fmt.Println("============================= Classifier =====================================")
 	wordVectorizer := word_vectorizer.New(word_vectorizer.WordVectorizerConfig{
 		Lower: true,
 	})
@@ -92,18 +92,18 @@ func main() {
 
 	fmt.Println(predicted)
 
-	//=============================== POS Tagger =====================================
+	fmt.Println("=============================== POS Tagger =====================================")
 	file, err := ioutil.ReadFile("tagged_corpus/Indonesian.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
-	tuple := pos_tagger.StringToTuple(pos_tagger.StringToTupleInput{
+	tuple := tagger.StringToTuple(tagger.StringToTupleInput{
 		Text:  string(file),
 		Lower: true,
 	})
 
-	text := "Halo nama ku Adrian . Saya baik dan tampan ."
-	defaultTagger := pos_tagger.NewDefaultTagger(pos_tagger.DefaultTaggerConfig{
+	text := "Halo nama ku Adrian . Saya baik dan tampan . Saya berumur 10 tahun ."
+	defaultTagger := tagger.NewDefaultTagger(tagger.DefaultTaggerConfig{
 		DefaultTag: "nn",
 	})
 
@@ -121,8 +121,8 @@ func main() {
 
 	fmt.Println(predictedValue)
 
-	regexTagger := pos_tagger.NewRegexTagger(pos_tagger.RegexTaggerConfig{
-		Patterns:      pos_tagger.DefaultIndonesianRegexTagger,
+	regexTagger := tagger.NewRegexTagger(tagger.RegexTaggerConfig{
+		Patterns:      tagger.DefaultIndonesianRegexTagger,
 		BackoffTagger: defaultTagger,
 	})
 
@@ -133,6 +133,24 @@ func main() {
 	}
 
 	predictedValue, err = regexTagger.Predict(text)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(predictedValue)
+
+	unigramTagger := tagger.NewUnigramTagger(tagger.UnigramTaggerConfig{
+		BackoffTagger: regexTagger,
+	})
+
+	err = unigramTagger.Learn(tuple.Tuple)
+
+	if err != nil {
+		panic(err)
+	}
+
+	predictedValue, err = unigramTagger.Predict(text)
 
 	if err != nil {
 		panic(err)
