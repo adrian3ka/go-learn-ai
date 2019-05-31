@@ -102,7 +102,7 @@ func main() {
 		Lower: true,
 	})
 
-	text := "Halo nama ku Adrian . Saya baik dan tampan . Saya berumur 10 tahun ."
+	text := "Halo nama saya Adrian. Saya baik dan tampan. Saya berumur 10 tahun."
 	defaultTagger := tagger.NewDefaultTagger(tagger.DefaultTaggerConfig{
 		DefaultTag: "nn",
 	})
@@ -151,6 +151,44 @@ func main() {
 	}
 
 	predictedValue, err = unigramTagger.Predict(text)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(predictedValue)
+
+	bigramTagger := tagger.NewNGramTagger(tagger.NGramTaggerConfig{
+		BackoffTagger: unigramTagger,
+		N:             2,
+	})
+
+	err = bigramTagger.Learn(tuple.Tuple)
+
+	if err != nil {
+		panic(err)
+	}
+
+	predictedValue, err = bigramTagger.Predict(text)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(predictedValue)
+
+	trigramTagger := tagger.NewNGramTagger(tagger.NGramTaggerConfig{
+		BackoffTagger: bigramTagger,
+		N:             3,
+	})
+
+	err = trigramTagger.Learn(tuple.Tuple)
+
+	if err != nil {
+		panic(err)
+	}
+
+	predictedValue, err = trigramTagger.Predict(text)
 
 	if err != nil {
 		panic(err)
