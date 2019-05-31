@@ -2,6 +2,7 @@ package tagger
 
 import (
 	"container/list"
+	"github.com/adrian/go-learn-ai/helper"
 	"strings"
 )
 
@@ -29,8 +30,10 @@ func (u *UnigramTagger) Predict(text string) ([][2]string, error) {
 	for _, splitedString := range splitedStrings {
 		var selectedTag *string
 
-		if val, exists := u.mapTag[splitedString]; exists {
-			selectedTag = &val
+		if helper.IsLetter(splitedString) {
+			if val, exists := u.mapTag[splitedString]; exists {
+				selectedTag = &val
+			}
 		}
 
 		if selectedTag == nil && u.backoffTagger != nil {
@@ -118,7 +121,7 @@ func (n *NGramTagger) Predict(text string) ([][2]string, error) {
 	for idx, splitedString := range splitedStrings {
 		var selectedTag *string
 
-		if uint64(idx) >= minimumWord {
+		if uint64(idx) >= minimumWord && helper.IsLetter(splitedString) {
 
 			generatedTag := ""
 
@@ -130,8 +133,12 @@ func (n *NGramTagger) Predict(text string) ([][2]string, error) {
 				}
 			}
 
-			if val, exists := n.mapTag[generatedTag]; exists {
-				selectedTag = &val
+			if helper.IsAlphaUnderscore(generatedTag) {
+				if val, exists := n.mapTag[generatedTag]; exists {
+					if helper.IsLetter(val) {
+						selectedTag = &val
+					}
+				}
 			}
 		}
 
@@ -180,6 +187,7 @@ func (n *NGramTagger) Learn(tuple [][2]string) error {
 			}
 			queue.MoveToBack(e)
 		}
+
 		if _, exists := tupleMap[generatedTag]; !exists {
 			var temp = make(map[string]float64)
 			temp[t[1]] = 1

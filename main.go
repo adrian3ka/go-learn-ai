@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"github.com/adrian/go-learn-ai/helper"
 	"github.com/adrian/go-learn-ai/naive_bayes"
 	"github.com/adrian/go-learn-ai/tagger"
 	"github.com/adrian/go-learn-ai/term_frequency"
@@ -97,102 +98,115 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	tuple := tagger.StringToTuple(tagger.StringToTupleInput{
-		Text:  string(file),
-		Lower: true,
+
+	defaultTag := "nn"
+	allTuple := tagger.StringToTuple(tagger.StringToTupleInput{
+		Text:     string(file),
+		Lower:    true,
+		Simplify: true,
+		Default:  &defaultTag,
 	})
 
-	text := "Halo nama saya Adrian. Saya baik dan tampan. Saya berumur 10 tahun."
+	border := len(allTuple.Tuple) * 999 / 1000
+	trainTuple := allTuple.Tuple[0:border]
+	testTuple := allTuple.Tuple[border:len(allTuple.Tuple)]
+
+	testSentence := ""
+
+	for _, t := range testTuple {
+		testSentence += t[0] + " "
+	}
+
 	defaultTagger := tagger.NewDefaultTagger(tagger.DefaultTaggerConfig{
 		DefaultTag: "nn",
 	})
 
-	err = defaultTagger.Learn(tuple.Tuple)
+	err = defaultTagger.Learn(trainTuple)
 
 	if err != nil {
 		panic(err)
 	}
 
-	predictedValue, err := defaultTagger.Predict(text)
+	predictedValue, err := defaultTagger.Predict(testSentence)
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(predictedValue)
+	fmt.Println("Recall Of Default Tagger Only >> ", helper.CalculateRecall(testTuple, predictedValue))
 
-	regexTagger := tagger.NewRegexTagger(tagger.RegexTaggerConfig{
-		Patterns:      tagger.DefaultIndonesianRegexTagger,
+	unigramTagger := tagger.NewUnigramTagger(tagger.UnigramTaggerConfig{
 		BackoffTagger: defaultTagger,
 	})
 
-	err = regexTagger.Learn(tuple.Tuple)
+	err = unigramTagger.Learn(trainTuple)
 
 	if err != nil {
 		panic(err)
 	}
 
-	predictedValue, err = regexTagger.Predict(text)
+	predictedValue, err = unigramTagger.Predict(testSentence)
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(predictedValue)
+	fmt.Println("Recall Of Unigram Tagger With Backoff >> ", helper.CalculateRecall(testTuple, predictedValue))
 
-	unigramTagger := tagger.NewUnigramTagger(tagger.UnigramTaggerConfig{
-		BackoffTagger: regexTagger,
+	regexTagger := tagger.NewRegexTagger(tagger.RegexTaggerConfig{
+		Patterns:      tagger.DefaultSimpleIndonesianRegexTagger,
+		BackoffTagger: unigramTagger,
 	})
 
-	err = unigramTagger.Learn(tuple.Tuple)
+	err = regexTagger.Learn(trainTuple)
 
 	if err != nil {
 		panic(err)
 	}
 
-	predictedValue, err = unigramTagger.Predict(text)
+	predictedValue, err = regexTagger.Predict(testSentence)
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(predictedValue)
+	fmt.Println("Recall Of Regex Tagger With Backoff >> ", helper.CalculateRecall(testTuple, predictedValue))
 
 	bigramTagger := tagger.NewNGramTagger(tagger.NGramTaggerConfig{
-		BackoffTagger: unigramTagger,
+		BackoffTagger: regexTagger,
 		N:             2,
 	})
 
-	err = bigramTagger.Learn(tuple.Tuple)
+	err = bigramTagger.Learn(trainTuple)
 
 	if err != nil {
 		panic(err)
 	}
 
-	predictedValue, err = bigramTagger.Predict(text)
+	predictedValue, err = bigramTagger.Predict(testSentence)
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(predictedValue)
+	fmt.Println("Recall Of Bigram Tagger With Backoff >> ", helper.CalculateRecall(testTuple, predictedValue))
 
 	trigramTagger := tagger.NewNGramTagger(tagger.NGramTaggerConfig{
 		BackoffTagger: bigramTagger,
 		N:             3,
 	})
 
-	err = trigramTagger.Learn(tuple.Tuple)
+	err = trigramTagger.Learn(trainTuple)
 
 	if err != nil {
 		panic(err)
 	}
 
-	predictedValue, err = trigramTagger.Predict(text)
+	predictedValue, err = trigramTagger.Predict(testSentence)
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(predictedValue)
+	fmt.Println("Recall Of Trigram Tagger With Backoff >> ", helper.CalculateRecall(testTuple, predictedValue))
 }

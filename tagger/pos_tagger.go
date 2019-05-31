@@ -1,32 +1,35 @@
 package tagger
 
 import (
+	"github.com/adrian/go-learn-ai/helper"
 	"regexp"
 	"strings"
 )
 
-var DefaultIndonesianRegexTagger = [][2]string{
-	[2]string{`^-?[0-9]+(.[0-9]+)?$`, `cdp`},
-	[2]string{`meng[aiueokghx].+$`, `vb`},
-	[2]string{`mem[bpf]([a-df-z][a-qs-z]|er).+$`, `vb`},
-	[2]string{`me[lnryw](a-df-z).+$`, `vb`},
-	[2]string{`men[dtcjys].+$`, `vb`},
-	[2]string{`di.+(kan|i)$`, `vb`},
-	[2]string{`per.+(kan|i|.)$`, `vb`},
-	[2]string{`ber.+(kan|an|.)$`, `vb`},
+var Punctuation = []string{
+	",", ".", ":", "?", "!",
+}
+
+var IndonesianStopWords = []string{
+	"dan", "di", "ke", "dari", "ok", "ya", "pula", "pada", "ke", "yang", "ia",
+}
+
+var DefaultSimpleIndonesianRegexTagger = [][2]string{
+	[2]string{`^[0-9]*$`, `cd`},
 	[2]string{`(bidang)$`, `vb`},
-	[2]string{`ter.+(kan|i|.)$`, `vb`},
-	[2]string{`ke.+(i|an)$`, `vb`},
+	[2]string{`(tidak|tak)$`, `ne`},
 	[2]string{`se(baik|benar|tidak|layak|lekas|sungguh|yogya|belum|pantas|balik|lanjut)(nya)$`, `rb`},
 	[2]string{`(sekadar|amat|bahkan|cukup|jua|justru|kembali|kurang|malah|mau|nian|niscaya|pasti|patut|perlu|lagi|pernah|pun|sekali|selalu|senantiasa|sering|sungguh|tentu|terus|lebih|hampir|jarang|juga|kerap|makin|memang|nyaris|paling|pula|saja|saling|sangat|segera|semakin|serba|entah|hanya|kadangkala)$`, `rb`},
-	[2]string{`(akan|antara|bagi|buat|dari|dengan|di|ke|kecuali|lepas|oleh|pada|per|peri|seperti|tanpa|tentang|untuk)$`, `in`},
+	[2]string{`(akan|antara|bagi|buat|dari|dengan|di|ke|kecuali|lepas|oleh|pada|per|peri|seperti|tanpa|tentang|untuk|dengan)$`, `in`},
 	[2]string{`(dan|serta|atau|tetapi|melainkan|padahal|sedangkan)$`, `cc`},
-	[2]string{`(sejak|semenjak|sedari|sewaktu|ketika|tatkala|sementara|begitu|seraya|selagi|selama|serta|sambil|demi|setelah|sesudah|sebelum|sehabis|selesai|seusai|hingga|sampai|jika|kalau|jikalau|asal)$`, `sc`},
+	[2]string{`(yang|sejak|semenjak|sedari|sewaktu|ketika|tatkala|sementara|begitu|seraya|selagi|selama|serta|sambil|demi|setelah|sesudah|sebelum|sehabis|selesai|seusai|hingga|sampai|jika|kalau|jikalau|asal)$`, `sc`},
 }
 
 type StringToTupleInput struct {
-	Text  string
-	Lower bool
+	Text     string
+	Lower    bool
+	Simplify bool
+	Default  *string
 }
 
 type StringToTupleOutput struct {
@@ -64,7 +67,15 @@ func StringToTuple(input StringToTupleInput) StringToTupleOutput {
 			splittedWordAndTag[0] = strings.ToLower(temp[0])
 		}
 
-		splittedWordAndTag[1] = strings.ToLower(temp[1])
+		tag := strings.ToLower(temp[1])
+
+		if len(tag) > 3 && input.Default != nil {
+			tag = *input.Default
+		}
+		if input.Simplify && len(tag) > 2 {
+			tag = tag[0:2]
+		}
+		splittedWordAndTag[1] = tag
 
 		tuple = append(tuple, splittedWordAndTag)
 	}
@@ -102,9 +113,14 @@ func (n *DefaultTagger) Predict(text string) ([][2]string, error) {
 	var tuple [][2]string
 
 	for _, splitedString := range splitedStrings {
+		tag := n.defaultTag
+
+		if !helper.IsAlphaNumeric(splitedString) && len(splitedString) == 1 {
+			tag = splitedString
+		}
 		tuple = append(tuple, [2]string{
 			splitedString,
-			n.defaultTag,
+			tag,
 		})
 	}
 	return tuple, nil
