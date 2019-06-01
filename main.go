@@ -85,7 +85,7 @@ func main() {
 
 	fmt.Println(predicted)
 
-	fmt.Println("=============================== POS Tagger =====================================")
+	fmt.Println("============================== POS Tagger ====================================")
 	file, err := ioutil.ReadFile("tagged_corpus/Indonesian.txt")
 	if err != nil {
 		log.Fatal(err)
@@ -98,7 +98,7 @@ func main() {
 		Default: &defaultTag,
 	})
 
-	border := len(allTuple.Tuple) * 800 / 1000
+	border := len(allTuple.Tuple) * 95 / 100
 	trainTuple := allTuple.Tuple[0:border]
 	testTuple := allTuple.Tuple[border:len(allTuple.Tuple)]
 
