@@ -1,9 +1,9 @@
 package helper
 
 import (
-	"fmt"
 	"reflect"
 	"regexp"
+	"strings"
 	"unicode"
 )
 
@@ -26,6 +26,29 @@ func IsAlphaUnderscore(s string) bool {
 	return re.MatchString(s)
 }
 
+func IsStringEqual(text string, characters []string) bool {
+	for _, character := range characters {
+		if text == character {
+			return true
+		}
+	}
+	return false
+}
+
+func LastSplit(text string, rune string) []string {
+	result := strings.Split(text, rune)
+
+	if len(result) < 2 {
+		return []string{
+			text,
+		}
+	}
+
+	return []string{
+		strings.Join(result[0:len(result)-1], rune),
+		result[len(result)-1],
+	}
+}
 func CalculateRecall(trueSlice interface{}, predictedSlice interface{}) float64 {
 	trueReflection := reflect.ValueOf(trueSlice)
 	if trueReflection.Kind() != reflect.Slice {
@@ -51,9 +74,6 @@ func CalculateRecall(trueSlice interface{}, predictedSlice interface{}) float64 
 
 	truePositive := float64(0)
 	falseNegative := float64(0)
-
-	fmt.Println(predictedValue)
-	fmt.Println(trueValue)
 
 	for i := 0; i < len(predictedValue)-1; i++ {
 		if predictedValue[i] != trueValue[i] {

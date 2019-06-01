@@ -42,8 +42,6 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(wordVectorizer.GetVectorizedWord())
-
 	termFrequency := term_frequency.New(term_frequency.TermFrequencyConfig{
 		Binary:         false,
 		WordVectorizer: wordVectorizer,
@@ -54,8 +52,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println(termFrequency.VectorizedCounter())
 
 	tfIdf, err := tf_idf.New(tf_idf.TermFrequencyInverseDocumentFrequencyConfig{
 		Smooth:          true,
@@ -72,10 +68,6 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-
-	fmt.Println(tfIdf.GetInverseDocumentFrequency())
-	fmt.Println(tfIdf.GetDocumentFrequency())
-	fmt.Println(tfIdf.GetTrainedData())
 
 	multinomialNB := naive_bayes.NewMultinomialNaiveBayes(naive_bayes.MultinomialNaiveBayesConfig{
 		Evaluator: tfIdf,
@@ -101,20 +93,23 @@ func main() {
 
 	defaultTag := "nn"
 	allTuple := tagger.StringToTuple(tagger.StringToTupleInput{
-		Text:     string(file),
-		Lower:    true,
-		Simplify: true,
-		Default:  &defaultTag,
+		Text:    string(file),
+		Lower:   true,
+		Default: &defaultTag,
 	})
 
-	border := len(allTuple.Tuple) * 999 / 1000
+	border := len(allTuple.Tuple) * 800 / 1000
 	trainTuple := allTuple.Tuple[0:border]
 	testTuple := allTuple.Tuple[border:len(allTuple.Tuple)]
 
+	var testTaggedWord [][2]string
 	testSentence := ""
 
-	for _, t := range testTuple {
-		testSentence += t[0] + " "
+	for _, sentence := range testTuple {
+		for _, word := range sentence {
+			testTaggedWord = append(testTaggedWord, word)
+			testSentence += word[0] + " "
+		}
 	}
 
 	defaultTagger := tagger.NewDefaultTagger(tagger.DefaultTaggerConfig{
@@ -133,7 +128,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Recall Of Default Tagger Only >> ", helper.CalculateRecall(testTuple, predictedValue))
+	fmt.Println("Recall Of Default Tagger Only >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
 
 	unigramTagger := tagger.NewUnigramTagger(tagger.UnigramTaggerConfig{
 		BackoffTagger: defaultTagger,
@@ -151,29 +146,10 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Recall Of Unigram Tagger With Backoff >> ", helper.CalculateRecall(testTuple, predictedValue))
-
-	regexTagger := tagger.NewRegexTagger(tagger.RegexTaggerConfig{
-		Patterns:      tagger.DefaultSimpleIndonesianRegexTagger,
-		BackoffTagger: unigramTagger,
-	})
-
-	err = regexTagger.Learn(trainTuple)
-
-	if err != nil {
-		panic(err)
-	}
-
-	predictedValue, err = regexTagger.Predict(testSentence)
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Recall Of Regex Tagger With Backoff >> ", helper.CalculateRecall(testTuple, predictedValue))
+	fmt.Println("Recall Of Unigram Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
 
 	bigramTagger := tagger.NewNGramTagger(tagger.NGramTaggerConfig{
-		BackoffTagger: regexTagger,
+		BackoffTagger: unigramTagger,
 		N:             2,
 	})
 
@@ -189,7 +165,7 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Recall Of Bigram Tagger With Backoff >> ", helper.CalculateRecall(testTuple, predictedValue))
+	fmt.Println("Recall Of Bigram Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
 
 	trigramTagger := tagger.NewNGramTagger(tagger.NGramTaggerConfig{
 		BackoffTagger: bigramTagger,
@@ -208,5 +184,24 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println("Recall Of Trigram Tagger With Backoff >> ", helper.CalculateRecall(testTuple, predictedValue))
+	fmt.Println("Recall Of Trigram Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
+
+	regexTagger := tagger.NewRegexTagger(tagger.RegexTaggerConfig{
+		Patterns:      tagger.DefaultSimpleIndonesianRegexTagger,
+		BackoffTagger: trigramTagger,
+	})
+
+	err = regexTagger.Learn(trainTuple)
+
+	if err != nil {
+		panic(err)
+	}
+
+	predictedValue, err = regexTagger.Predict(testSentence)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Recall Of Regex Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
 }

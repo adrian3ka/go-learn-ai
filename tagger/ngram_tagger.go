@@ -59,19 +59,21 @@ func (u *UnigramTagger) Predict(text string) ([][2]string, error) {
 	return tuple, nil
 }
 
-func (u *UnigramTagger) Learn(tuple [][2]string) error {
+func (u *UnigramTagger) Learn(tuple [][][2]string) error {
 	var tupleMap = make(map[string]map[string]float64)
 
-	for _, t := range tuple {
-		if _, exists := tupleMap[t[0]]; !exists {
-			var temp = make(map[string]float64)
-			temp[t[1]] = 1
-			tupleMap[t[0]] = temp
-		} else {
-			if _, exists := tupleMap[t[0]][t[1]]; !exists {
-				tupleMap[t[0]][t[1]] = 1
+	for _, sentence := range tuple {
+		for _, word := range sentence {
+			if _, exists := tupleMap[word[0]]; !exists {
+				var temp = make(map[string]float64)
+				temp[word[1]] = 1
+				tupleMap[word[0]] = temp
 			} else {
-				tupleMap[t[0]][t[1]] += 1
+				if _, exists := tupleMap[word[0]][word[1]]; !exists {
+					tupleMap[word[0]][word[1]] = 1
+				} else {
+					tupleMap[word[0]][word[1]] += 1
+				}
 			}
 		}
 	}
@@ -165,46 +167,52 @@ func (n *NGramTagger) Predict(text string) ([][2]string, error) {
 	return tuple, nil
 }
 
-func (n *NGramTagger) Learn(tuple [][2]string) error {
+func (n *NGramTagger) Learn(tuple [][][2]string) error {
 	var tupleMap = make(map[string]map[string]float64)
-	queue := list.New()
 	maxQueueCount := n.n - 1
 	generatedTag := ""
-	for idx, t := range tuple {
+	for _, sentence := range tuple {
 
-		if uint64(idx) < n.n-1 {
-			queue.PushBack(t[1])
-			continue
-		}
-
-		generatedTag = ""
-
-		for i := 0; i < queue.Len(); i++ {
-			e := queue.Front()
-			generatedTag += e.Value.(string)
-			if i != queue.Len()-1 {
-				generatedTag += "_"
+		queue := list.New()
+		for idx, word := range sentence {
+			if idx == len(sentence)-1 {
+				break
 			}
-			queue.MoveToBack(e)
-		}
 
-		if _, exists := tupleMap[generatedTag]; !exists {
-			var temp = make(map[string]float64)
-			temp[t[1]] = 1
-			tupleMap[generatedTag] = temp
-		} else {
-			if _, exists := tupleMap[generatedTag][t[1]]; !exists {
-				tupleMap[generatedTag][t[1]] = 1
+			if uint64(idx) < n.n-1 {
+				queue.PushBack(word[1])
+				continue
+			}
+
+			generatedTag = ""
+
+			for i := 0; i < queue.Len(); i++ {
+				e := queue.Front()
+				generatedTag += e.Value.(string)
+				if i != queue.Len()-1 {
+					generatedTag += "_"
+				}
+				queue.MoveToBack(e)
+			}
+
+			if _, exists := tupleMap[generatedTag]; !exists {
+				var temp = make(map[string]float64)
+				temp[word[1]] = 1
+				tupleMap[generatedTag] = temp
 			} else {
-				tupleMap[generatedTag][t[1]] += 1
+				if _, exists := tupleMap[generatedTag][word[1]]; !exists {
+					tupleMap[generatedTag][word[1]] = 1
+				} else {
+					tupleMap[generatedTag][word[1]] += 1
+				}
 			}
-		}
 
-		queue.PushBack(t[1])
+			queue.PushBack(word[1])
 
-		if uint64(queue.Len()) > maxQueueCount {
-			e := queue.Front()
-			queue.Remove(e)
+			if uint64(queue.Len()) > maxQueueCount {
+				e := queue.Front()
+				queue.Remove(e)
+			}
 		}
 	}
 
