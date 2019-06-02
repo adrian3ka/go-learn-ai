@@ -94,11 +94,11 @@ func main() {
 	defaultTag := "nn"
 	allTuple := tagger.StringToTuple(tagger.StringToTupleInput{
 		Text:    string(file),
-		Lower:   true,
+		Lower:   false,
 		Default: &defaultTag,
 	})
 
-	border := len(allTuple.Tuple) * 95 / 100
+	border := len(allTuple.Tuple) * 99 / 100
 	trainTuple := allTuple.Tuple[0:border]
 	testTuple := allTuple.Tuple[border:len(allTuple.Tuple)]
 

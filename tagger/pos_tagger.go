@@ -63,6 +63,8 @@ func StringToTuple(input StringToTupleInput) StringToTupleOutput {
 
 		if input.Lower {
 			splittedWordAndTag[0] = strings.ToLower(temp[0])
+		} else {
+			splittedWordAndTag[0] = temp[0]
 		}
 
 		tag := strings.ToUpper(temp[1])
