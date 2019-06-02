@@ -130,8 +130,27 @@ func main() {
 
 	fmt.Println("Recall Of Default Tagger Only >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
 
-	unigramTagger := tagger.NewUnigramTagger(tagger.UnigramTaggerConfig{
+	regexTagger := tagger.NewRegexTagger(tagger.RegexTaggerConfig{
+		Patterns:      tagger.DefaultSimpleIndonesianRegexTagger,
 		BackoffTagger: defaultTagger,
+	})
+
+	err = regexTagger.Learn(trainTuple)
+
+	if err != nil {
+		panic(err)
+	}
+
+	predictedValue, err = regexTagger.Predict(testSentence)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Recall Of Regex Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
+
+	unigramTagger := tagger.NewUnigramTagger(tagger.UnigramTaggerConfig{
+		BackoffTagger: regexTagger,
 	})
 
 	err = unigramTagger.Learn(trainTuple)
@@ -148,27 +167,8 @@ func main() {
 
 	fmt.Println("Recall Of Unigram Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
 
-	bigramTagger := tagger.NewNGramTagger(tagger.NGramTaggerConfig{
-		BackoffTagger: unigramTagger,
-		N:             2,
-	})
-
-	err = bigramTagger.Learn(trainTuple)
-
-	if err != nil {
-		panic(err)
-	}
-
-	predictedValue, err = bigramTagger.Predict(testSentence)
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Recall Of Bigram Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
-
 	trigramTagger := tagger.NewNGramTagger(tagger.NGramTaggerConfig{
-		BackoffTagger: bigramTagger,
+		BackoffTagger: unigramTagger,
 		N:             3,
 	})
 
@@ -186,22 +186,23 @@ func main() {
 
 	fmt.Println("Recall Of Trigram Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
 
-	regexTagger := tagger.NewRegexTagger(tagger.RegexTaggerConfig{
-		Patterns:      tagger.DefaultSimpleIndonesianRegexTagger,
+	bigramTagger := tagger.NewNGramTagger(tagger.NGramTaggerConfig{
 		BackoffTagger: trigramTagger,
+		N:             2,
 	})
 
-	err = regexTagger.Learn(trainTuple)
+	err = bigramTagger.Learn(trainTuple)
 
 	if err != nil {
 		panic(err)
 	}
 
-	predictedValue, err = regexTagger.Predict(testSentence)
+	predictedValue, err = bigramTagger.Predict(testSentence)
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Recall Of Regex Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
+	fmt.Println("Recall Of Bigram Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
+
 }
