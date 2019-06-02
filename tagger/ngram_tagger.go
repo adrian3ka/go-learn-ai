@@ -128,12 +128,10 @@ func (n *NGramTagger) Predict(text string) ([][2]string, error) {
 			generatedTag := ""
 
 			for i := 1; i <= int(minimumWord); i++ {
-				generatedTag += tuple[len(tuple)-i][1]
-
-				if i != int(minimumWord) {
-					generatedTag += "_"
-				}
+				generatedTag += tuple[len(tuple)-i][1] + "_"
 			}
+
+			generatedTag += splitedString
 
 			if helper.IsAlphaUnderscore(generatedTag) {
 				if val, exists := n.mapTag[generatedTag]; exists {
@@ -180,7 +178,7 @@ func (n *NGramTagger) Learn(tuple [][][2]string) error {
 			}
 
 			if uint64(idx) < n.n-1 {
-				queue.PushBack(word[1])
+				queue.PushBack(word)
 				continue
 			}
 
@@ -188,12 +186,12 @@ func (n *NGramTagger) Learn(tuple [][][2]string) error {
 
 			for i := 0; i < queue.Len(); i++ {
 				e := queue.Front()
-				generatedTag += e.Value.(string)
-				if i != queue.Len()-1 {
-					generatedTag += "_"
-				}
+				val := e.Value.([2]string)
+				generatedTag += val[1] + "_"
 				queue.MoveToBack(e)
 			}
+
+			generatedTag += word[0]
 
 			if _, exists := tupleMap[generatedTag]; !exists {
 				var temp = make(map[string]float64)
@@ -207,7 +205,7 @@ func (n *NGramTagger) Learn(tuple [][][2]string) error {
 				}
 			}
 
-			queue.PushBack(word[1])
+			queue.PushBack(word)
 
 			if uint64(queue.Len()) > maxQueueCount {
 				e := queue.Front()

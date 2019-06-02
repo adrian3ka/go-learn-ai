@@ -91,7 +91,7 @@ func main() {
 		log.Fatal(err)
 	}
 
-	defaultTag := "nn"
+	defaultTag := "NN"
 	allTuple := tagger.StringToTuple(tagger.StringToTupleInput{
 		Text:    string(file),
 		Lower:   false,
