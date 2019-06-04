@@ -2,8 +2,10 @@ package main
 
 import (
 	"fmt"
+	"github.com/adrian/go-learn-ai/grammar_parser"
 	"github.com/adrian/go-learn-ai/helper"
 	"github.com/adrian/go-learn-ai/naive_bayes"
+	nfa2 "github.com/adrian/go-learn-ai/nfa"
 	"github.com/adrian/go-learn-ai/tagger"
 	"github.com/adrian/go-learn-ai/term_frequency"
 	"github.com/adrian/go-learn-ai/tf_idf"
@@ -204,5 +206,79 @@ func main() {
 	}
 
 	fmt.Println("Recall Of Bigram Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
+
+	fmt.Println("========================= Information Extraction =============================")
+	nfa, state0, err := nfa2.NewNFA("State 0", false)
+
+	if err != nil {
+		panic(err)
+	}
+
+	state1, err := nfa.AddState(&nfa2.State{
+		Name: "State 1",
+	}, false)
+
+	if err != nil {
+		panic(err)
+	}
+
+	state2, err := nfa.AddState(&nfa2.State{
+		Name: "State 2",
+	}, true)
+
+	if err != nil {
+		panic(err)
+	}
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = nfa.AddTransition(state0.Index, "a", *state1, *state2)
+
+	if err != nil {
+		panic(err)
+	}
+
+	err = nfa.AddTransition(state1.Index, "b", *state0, *state2)
+
+	if err != nil {
+		panic(err)
+	}
+
+	var inputs []string
+	fmt.Println("Input a")
+	inputs = append(inputs, "a")
+
+	fmt.Println("Input b")
+
+	inputs = append(inputs, "b")
+
+	nfa.PrintTransitionTable()
+
+	fmt.Println("If input a, b will go to final?", nfa.VerifyInputs(inputs))
+
+	text := "Menteri Perhubungan Ignasius Jonan dan Jaksa Agung Prasetyo , menandatangani MoU tentang kordinasi dalam pelaksanaan tugas dan fungsi"
+
+	predictedValue, err = bigramTagger.Predict(text)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(predictedValue)
+
+	gp, err := grammar_parser.NewRegexpParser(grammar_parser.RegexpParserConfig{
+		Grammar: [][2]string{
+			{"NP", "{<NN>+}"}, //Chunking
+			//{"NP", "}<NN>+{"}, //Chinking
+		},
+	})
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(gp)
 
 }

@@ -1,11 +1,29 @@
 package helper
 
 import (
+	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
 	"unicode"
 )
+
+func GetStringInBetween(str string, start string, end string) (result *string) {
+	s := strings.Index(str, start)
+	if s == -1 {
+		return
+	}
+	s += len(start)
+	e := strings.Index(str, end)
+	fmt.Println(s, e)
+
+	if s == -1 || e == -1 {
+		return nil
+	}
+
+	ret := str[s:e]
+	return &ret
+}
 
 func IsLetter(s string) bool {
 	for _, r := range s {
