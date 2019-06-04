@@ -207,7 +207,7 @@ func main() {
 
 	fmt.Println("Recall Of Bigram Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
 
-	fmt.Println("========================= Information Extraction =============================")
+	fmt.Println("=================================== NFA ======================================")
 	nfa, state0, err := nfa2.NewNFA("State 0", false)
 
 	if err != nil {
@@ -257,6 +257,8 @@ func main() {
 	nfa.PrintTransitionTable()
 
 	fmt.Println("If input a, b will go to final?", nfa.VerifyInputs(inputs))
+
+	fmt.Println("========================= Information Extraction =============================")
 
 	text := "Menteri Perhubungan Ignasius Jonan dan Jaksa Agung Prasetyo , menandatangani MoU tentang kordinasi dalam pelaksanaan tugas dan fungsi"
 
