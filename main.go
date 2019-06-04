@@ -77,6 +77,7 @@ func main() {
 
 	predicted, err := multinomialNB.Predict([]string{
 		"mAu belI tiket kEreta doNg",
+		"z",
 		"jual pulsa ga ya?",
 		"mau beli tiket kereta pake pulsa bisa ga ya?",
 	})
@@ -281,6 +282,6 @@ func main() {
 		panic(err)
 	}
 
-	fmt.Println(gp)
+	gp.Parse(predictedValue)
 
 }

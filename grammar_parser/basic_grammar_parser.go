@@ -11,13 +11,13 @@ import (
 //AVAIABLE SYMBOL
 //- CHINCKING : } {
 //- CHUNGKING : { }
-//- One Or More : +
 
 const (
 	CannotCreateNFAFromGrammar = "Cannot Create NFA From Grammar"
 	InvalidGrammar             = "Invalid Grammar"
 	NilState                   = "Nil State"
 	OneOrMore                  = "+"
+	NoneOrPresent              = "*"
 	OpeningTag                 = "<"
 	ClosingTag                 = ">"
 )
@@ -39,42 +39,71 @@ type RegexpParserConfig struct {
 	Grammar [][2]string
 }
 
-func handleOneOrMore(nfaData *nfa.NFA, tag string, isFinal bool) error {
+type HandleSymbolInput struct {
+	PreviousState []*nfa.State
+	NfaData       *nfa.NFA
+	Tag           string
+	IsFinal       bool
+}
 
-	state1, err := nfaData.AddState(&nfa.State{
-		Name: tag,
-	}, false)
+func handleOneOrMore(input *HandleSymbolInput) (*nfa.NFA, []*nfa.State, error) {
+	var newStates []*nfa.State
+	var state1 *nfa.State
+	var err error
 
-	if err != nil {
-		return err
+	if input.NfaData == nil {
+		input.NfaData, state1, err = nfa.NewNFA(input.Tag, false)
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+	} else {
+
+		state1, err = input.NfaData.AddState(&nfa.State{
+			Name: input.Tag,
+		}, false)
+
+		if err != nil {
+			return nil, nil, err
+		}
 	}
 
-	state2, err := nfaData.AddState(&nfa.State{
-		Name: tag,
-	}, isFinal)
+	state2, err := input.NfaData.AddState(&nfa.State{
+		Name: input.Tag,
+	}, input.IsFinal)
 
 	if err != nil {
-		return err
+		return nil, nil, err
 	}
 
 	if state1 == nil || state2 == nil {
-		return errors.New(NilState)
+		return nil, nil, errors.New(NilState)
 	}
 
-	nfaData.AddTransition(state1.Index, tag, *state2)
-	return nil
+	newStates = append(newStates, state1)
+	newStates = append(newStates, state2)
+
+	err = input.NfaData.AddTransition(state1.Index, input.Tag, *state2)
+	err = input.NfaData.AddTransition(state2.Index, input.Tag, *state2)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	input.NfaData.PrintTransitionTable()
+
+	return input.NfaData, newStates, nil
 }
 
 func convertGrammarToNfa(grammar string) (*nfa.NFA, error) {
-	fmt.Println(grammar)
-
 	var newNFA *nfa.NFA
 	var err error
 
 	if string(grammar[0]) == "{" && string(grammar[len(grammar)-1]) == "}" {
 		grammar = strings.Replace(grammar, "{", "", 1)
 		grammar = strings.Replace(grammar, "}", "", 1)
-		fmt.Println(grammar)
+
 		var nextTag *string
 		isFinal := false
 		for {
@@ -86,28 +115,36 @@ func convertGrammarToNfa(grammar string) (*nfa.NFA, error) {
 
 			processedTag := OpeningTag + *tag + ClosingTag
 
-			fmt.Println(processedTag)
-
 			grammar = strings.Replace(grammar, processedTag, "", 1)
 
 			nextTag = helper.GetStringInBetween(grammar, "<", ">")
 
 			if nextTag == nil {
-				fmt.Println("isFinal >> ", isFinal)
 				isFinal = true
 			}
 
-			var state *nfa.State
+			processedCharacter := ""
+			for idx, _ := range grammar {
+				if string(grammar[idx]) == OneOrMore {
+					newNFA, _, err = handleOneOrMore(&HandleSymbolInput{
+						NfaData:       newNFA,
+						Tag:           *tag,
+						IsFinal:       isFinal,
+						PreviousState: nil,
+					})
 
-			newNFA, state, err = nfa.NewNFA(grammar, isFinal)
+					if err != nil {
+						return nil, err
+					}
 
-			if err != nil {
-				return nil, err
+					newNFA.PrintTransitionTable()
+					processedCharacter += OneOrMore
+				} else if string(grammar[idx]) == OpeningTag {
+					break
+				}
 			}
 
-			fmt.Println(*state)
-
-			fmt.Println("Grammar >> ", grammar)
+			grammar = strings.Replace(grammar, processedCharacter, "", 1)
 		}
 	} else {
 		return nil, errors.New(InvalidGrammar)
@@ -139,7 +176,15 @@ func NewRegexpParser(config RegexpParserConfig) (*RegexpParser, error) {
 	}, nil
 }
 
-func (rp *RegexpParser) Parse(input [][2]string) error {
-	fmt.Println(input)
-	return nil
+func (rp *RegexpParser) Parse(input [][2]string) ([][2][2]string, error) {
+	var parsedSentence [][2][2]string
+
+	var processedTag []string
+
+	for _, word := range input {
+		fmt.Println(word)
+		processedTag = append(processedTag, word[1])
+		fmt.Println(processedTag)
+	}
+	return parsedSentence, nil
 }
