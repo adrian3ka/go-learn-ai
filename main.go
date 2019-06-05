@@ -282,6 +282,13 @@ func main() {
 		panic(err)
 	}
 
-	gp.Parse(predictedValue)
+	parsedGrammar, err := gp.Parse(predictedValue)
 
+	if err != nil {
+		panic(err)
+	}
+
+	for _, x := range parsedGrammar {
+		fmt.Println(x)
+	}
 }

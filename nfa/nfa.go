@@ -156,10 +156,12 @@ func (d *NFA) Verify() bool {
 }
 
 //Reset NFA state to initilize state, but all state and transition function will remain
-func (d *NFA) Reset() {
+func (d *NFA) Reset() error {
 	initState := make(map[State]bool)
 	initState[d.initState] = true
 	d.currentState = initState
+
+	return nil
 }
 
 //Verify if list of input could be accept by NFA or not

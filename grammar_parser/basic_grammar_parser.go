@@ -2,7 +2,6 @@ package grammar_parser
 
 import (
 	"errors"
-	"fmt"
 	"github.com/adrian/go-learn-ai/helper"
 	"github.com/adrian/go-learn-ai/nfa"
 	"strings"
@@ -27,12 +26,13 @@ type BasicParser interface {
 }
 
 type NfaGrammar struct {
-	Nfa    nfa.NFA
-	Target string
+	Nfa            nfa.NFA
+	Target         string
+	AlreadyOnFinal bool
 }
 
 type RegexpParser struct {
-	nfaGrammar []NfaGrammar
+	nfaGrammar []*NfaGrammar
 }
 
 type RegexpParserConfig struct {
@@ -91,8 +91,6 @@ func handleOneOrMore(input *HandleSymbolInput) (*nfa.NFA, []*nfa.State, error) {
 		return nil, nil, err
 	}
 
-	input.NfaData.PrintTransitionTable()
-
 	return input.NfaData, newStates, nil
 }
 
@@ -137,7 +135,6 @@ func convertGrammarToNfa(grammar string) (*nfa.NFA, error) {
 						return nil, err
 					}
 
-					newNFA.PrintTransitionTable()
 					processedCharacter += OneOrMore
 				} else if string(grammar[idx]) == OpeningTag {
 					break
@@ -153,7 +150,7 @@ func convertGrammarToNfa(grammar string) (*nfa.NFA, error) {
 }
 
 func NewRegexpParser(config RegexpParserConfig) (*RegexpParser, error) {
-	var nfas []NfaGrammar
+	var nfas []*NfaGrammar
 
 	for _, g := range config.Grammar {
 		newNfa, err := convertGrammarToNfa(g[1])
@@ -166,7 +163,7 @@ func NewRegexpParser(config RegexpParserConfig) (*RegexpParser, error) {
 			return nil, errors.New(CannotCreateNFAFromGrammar)
 		}
 
-		nfas = append(nfas, NfaGrammar{
+		nfas = append(nfas, &NfaGrammar{
 			Nfa:    *newNfa,
 			Target: g[0],
 		})
@@ -176,15 +173,90 @@ func NewRegexpParser(config RegexpParserConfig) (*RegexpParser, error) {
 	}, nil
 }
 
-func (rp *RegexpParser) Parse(input [][2]string) ([][2][2]string, error) {
-	var parsedSentence [][2][2]string
+type ParsedGrammar struct {
+	GeneralTag *string
+	Words      [][2]string
+}
+
+func (rp *RegexpParser) ResetAllNfa() error {
+	for _, nfa := range rp.nfaGrammar {
+		err := nfa.Nfa.Reset()
+
+		nfa.AlreadyOnFinal = false
+
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
+func (rp *RegexpParser) Parse(input [][2]string) ([]ParsedGrammar, error) {
+	var parsedWords [][2]string
 
 	var processedTag []string
+	var processedGrammars []ParsedGrammar
 
 	for _, word := range input {
-		fmt.Println(word)
+
 		processedTag = append(processedTag, word[1])
-		fmt.Println(processedTag)
+
+		validOnPriority := false
+		for _, nfa := range rp.nfaGrammar {
+
+			res := nfa.Nfa.VerifyInputs(processedTag)
+			currState, err := nfa.Nfa.GetCurrenteState()
+
+			if err != nil {
+				return nil, err
+			}
+
+			lenState := uint64(len(currState))
+
+			if nfa.AlreadyOnFinal && lenState == 0 && !validOnPriority {
+				err = rp.ResetAllNfa()
+
+				if err != nil {
+					return nil, err
+				}
+
+				tag := nfa.Target
+
+				processedGrammars = append(processedGrammars, ParsedGrammar{
+					GeneralTag: &tag,
+					Words:      parsedWords,
+				})
+
+				parsedWords = nil
+				processedTag = nil
+
+				parsedWords = append(parsedWords, word)
+
+				break
+			}
+
+			if lenState > 0 {
+				validOnPriority = true
+			}
+
+			parsedWords = append(parsedWords, word)
+			nfa.AlreadyOnFinal = res
+		}
+
+		if !validOnPriority {
+			err := rp.ResetAllNfa()
+
+			if err != nil {
+				return nil, err
+			}
+
+			processedGrammars = append(processedGrammars, ParsedGrammar{
+				Words: parsedWords,
+			})
+
+			parsedWords = nil
+			processedTag = nil
+		}
 	}
-	return parsedSentence, nil
+	return processedGrammars, nil
 }
