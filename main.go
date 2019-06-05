@@ -289,6 +289,33 @@ func main() {
 	}
 
 	for _, x := range parsedGrammar {
-		fmt.Println(x)
+		if x.GeneralTag != nil {
+			fmt.Println(*x.GeneralTag, "-> ", x.Words)
+		} else {
+			fmt.Println("-> ", x.Words)
+		}
+	}
+
+	fmt.Println("-----------------------------------------------------")
+	text = "Nama saya Adrian Eka Sanjaya ."
+
+	predictedValue, err = bigramTagger.Predict(text)
+
+	if err != nil {
+		panic(err)
+	}
+
+	parsedGrammar, err = gp.Parse(predictedValue)
+
+	if err != nil {
+		panic(err)
+	}
+
+	for _, x := range parsedGrammar {
+		if x.GeneralTag != nil {
+			fmt.Println(*x.GeneralTag, "-> ", x.Words)
+		} else {
+			fmt.Println("-> ", x.Words)
+		}
 	}
 }

@@ -18,6 +18,7 @@ var DefaultSimpleIndonesianRegexTagger = [][2]string{
 	[2]string{`^[0-9]*$`, `CDP`},
 	[2]string{`^(satu|dua|tiga|empat|lima|enam|tujuh|delapan|sembilan|sepuluh)*$`, `CDP`},
 	[2]string{`(bidang)$`, `VB`},
+	[2]string{`^di.+(kan|i)$`, `VB`},
 	[2]string{`(membuat)$`, `VBT`},
 	[2]string{`(tidak|tak)$`, `NEG`},
 	[2]string{`se(baik|benar|tidak|layak|lekas|sungguh|yogya|belum|pantas|balik|lanjut)(nya)$`, `RB`},
