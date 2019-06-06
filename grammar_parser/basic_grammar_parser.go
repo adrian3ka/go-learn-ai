@@ -16,7 +16,8 @@ const (
 	InvalidGrammar             = "Invalid Grammar"
 	NilState                   = "Nil State"
 	OneOrMore                  = "+"
-	NoneOrPresent              = "*"
+	NoneOrMore                 = "*"
+	Optional                   = "?"
 	OpeningTag                 = "<"
 	ClosingTag                 = ">"
 )
@@ -44,6 +45,136 @@ type HandleSymbolInput struct {
 	NfaData       *nfa.NFA
 	Tag           string
 	IsFinal       bool
+}
+
+func handleNoneOrMore(input *HandleSymbolInput) (*nfa.NFA, []*nfa.State, error) {
+	var newStates []*nfa.State
+	var state1 *nfa.State
+	var err error
+
+	if input.NfaData == nil {
+		input.NfaData, state1, err = nfa.NewNFA(input.Tag, input.IsFinal)
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+	} else {
+
+		state1, err = input.NfaData.AddState(&nfa.State{
+			Name: input.Tag,
+		}, input.IsFinal)
+
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	newStates = append(newStates, state1)
+
+	err = input.NfaData.AddTransition(state1.Index, input.Tag, *state1)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for idx, _ := range input.PreviousState {
+		newStates = append(newStates, input.PreviousState[idx])
+		err = input.NfaData.AddTransition(input.PreviousState[idx].Index, input.Tag, *state1)
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+	}
+
+	return input.NfaData, newStates, nil
+}
+
+func handleBasic(input *HandleSymbolInput) (*nfa.NFA, []*nfa.State, error) {
+	var newStates []*nfa.State
+	var state1 *nfa.State
+	var err error
+
+	if input.NfaData == nil {
+		input.NfaData, state1, err = nfa.NewNFA(input.Tag, input.IsFinal)
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+	} else {
+
+		state1, err = input.NfaData.AddState(&nfa.State{
+			Name: input.Tag,
+		}, input.IsFinal)
+
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	newStates = append(newStates, state1)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for idx, _ := range input.PreviousState {
+		newStates = append(newStates, input.PreviousState[idx])
+		err = input.NfaData.AddTransition(input.PreviousState[idx].Index, input.Tag, *state1)
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+	}
+
+	return input.NfaData, newStates, nil
+}
+
+func handleOptional(input *HandleSymbolInput) (*nfa.NFA, []*nfa.State, error) {
+	var newStates []*nfa.State
+	var state1 *nfa.State
+	var err error
+
+	if input.NfaData == nil {
+		input.NfaData, state1, err = nfa.NewNFA(input.Tag, input.IsFinal)
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+	} else {
+
+		state1, err = input.NfaData.AddState(&nfa.State{
+			Name: input.Tag,
+		}, input.IsFinal)
+
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	newStates = append(newStates, state1)
+
+	err = input.NfaData.AddTransition(state1.Index, input.Tag, *state1)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
+	for idx, _ := range input.PreviousState {
+		newStates = append(newStates, input.PreviousState[idx])
+		err = input.NfaData.AddTransition(input.PreviousState[idx].Index, input.Tag, *state1)
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+	}
+
+	return input.NfaData, newStates, nil
 }
 
 func handleOneOrMore(input *HandleSymbolInput) (*nfa.NFA, []*nfa.State, error) {
@@ -81,10 +212,23 @@ func handleOneOrMore(input *HandleSymbolInput) (*nfa.NFA, []*nfa.State, error) {
 		return nil, nil, errors.New(NilState)
 	}
 
-	newStates = append(newStates, state1)
+	for idx, _ := range input.PreviousState {
+		err = input.NfaData.AddTransition(input.PreviousState[idx].Index, input.Tag, *state1)
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+	}
+
 	newStates = append(newStates, state2)
 
 	err = input.NfaData.AddTransition(state1.Index, input.Tag, *state2)
+
+	if err != nil {
+		return nil, nil, err
+	}
+
 	err = input.NfaData.AddTransition(state2.Index, input.Tag, *state2)
 
 	if err != nil {
@@ -97,6 +241,7 @@ func handleOneOrMore(input *HandleSymbolInput) (*nfa.NFA, []*nfa.State, error) {
 func convertGrammarToNfa(grammar string) (*nfa.NFA, error) {
 	var newNFA *nfa.NFA
 	var err error
+	var previousState []*nfa.State
 
 	if string(grammar[0]) == "{" && string(grammar[len(grammar)-1]) == "}" {
 		grammar = strings.Replace(grammar, "{", "", 1)
@@ -104,6 +249,7 @@ func convertGrammarToNfa(grammar string) (*nfa.NFA, error) {
 
 		var nextTag *string
 		isFinal := false
+
 		for {
 			tag := helper.GetStringInBetween(grammar, OpeningTag, ClosingTag)
 
@@ -122,13 +268,28 @@ func convertGrammarToNfa(grammar string) (*nfa.NFA, error) {
 			}
 
 			processedCharacter := ""
+
+			if len(grammar) == 0 {
+				newNFA, previousState, err = handleBasic(&HandleSymbolInput{
+					NfaData:       newNFA,
+					Tag:           *tag,
+					IsFinal:       isFinal,
+					PreviousState: previousState,
+				})
+
+				if err != nil {
+					return nil, err
+				}
+
+				break
+			}
 			for idx, _ := range grammar {
 				if string(grammar[idx]) == OneOrMore {
-					newNFA, _, err = handleOneOrMore(&HandleSymbolInput{
+					newNFA, previousState, err = handleOneOrMore(&HandleSymbolInput{
 						NfaData:       newNFA,
 						Tag:           *tag,
 						IsFinal:       isFinal,
-						PreviousState: nil,
+						PreviousState: previousState,
 					})
 
 					if err != nil {
@@ -136,6 +297,32 @@ func convertGrammarToNfa(grammar string) (*nfa.NFA, error) {
 					}
 
 					processedCharacter += OneOrMore
+				} else if string(grammar[idx]) == Optional {
+					newNFA, previousState, err = handleOptional(&HandleSymbolInput{
+						NfaData:       newNFA,
+						Tag:           *tag,
+						IsFinal:       isFinal,
+						PreviousState: previousState,
+					})
+
+					if err != nil {
+						return nil, err
+					}
+
+					processedCharacter += Optional
+				} else if string(grammar[idx]) == NoneOrMore {
+					newNFA, previousState, err = handleNoneOrMore(&HandleSymbolInput{
+						NfaData:       newNFA,
+						Tag:           *tag,
+						IsFinal:       isFinal,
+						PreviousState: previousState,
+					})
+
+					if err != nil {
+						return nil, err
+					}
+
+					processedCharacter += NoneOrMore
 				} else if string(grammar[idx]) == OpeningTag {
 					break
 				}
@@ -163,6 +350,7 @@ func NewRegexpParser(config RegexpParserConfig) (*RegexpParser, error) {
 			return nil, errors.New(CannotCreateNFAFromGrammar)
 		}
 
+		newNfa.PrintTransitionTable()
 		nfas = append(nfas, &NfaGrammar{
 			Nfa:    *newNfa,
 			Target: g[0],
@@ -179,10 +367,10 @@ type ParsedGrammar struct {
 }
 
 func (rp *RegexpParser) ResetAllNfa() error {
-	for _, nfa := range rp.nfaGrammar {
-		err := nfa.Nfa.Reset()
+	for _, nfaGrammar := range rp.nfaGrammar {
+		err := nfaGrammar.Nfa.Reset()
 
-		nfa.AlreadyOnFinal = false
+		nfaGrammar.AlreadyOnFinal = false
 
 		if err != nil {
 			return err
@@ -197,15 +385,17 @@ func (rp *RegexpParser) Parse(input [][2]string) ([]ParsedGrammar, error) {
 	var processedTag []string
 	var processedGrammars []ParsedGrammar
 
-	for _, word := range input {
+	for idxWord, word := range input {
 
 		processedTag = append(processedTag, word[1])
 
 		validOnPriority := false
-		for _, nfa := range rp.nfaGrammar {
+		for _, nfaGrammar := range rp.nfaGrammar {
 
-			res := nfa.Nfa.VerifyInputs(processedTag)
-			currState, err := nfa.Nfa.GetCurrenteState()
+			res := nfaGrammar.Nfa.VerifyInputs(processedTag)
+
+			processedTag = nil
+			currState, err := nfaGrammar.Nfa.GetCurrenteState()
 
 			if err != nil {
 				return nil, err
@@ -213,14 +403,14 @@ func (rp *RegexpParser) Parse(input [][2]string) ([]ParsedGrammar, error) {
 
 			lenState := uint64(len(currState))
 
-			if nfa.AlreadyOnFinal && lenState == 0 && !validOnPriority {
+			if nfaGrammar.AlreadyOnFinal && lenState == 0 && !validOnPriority {
 				err = rp.ResetAllNfa()
 
 				if err != nil {
 					return nil, err
 				}
 
-				tag := nfa.Target
+				tag := nfaGrammar.Target
 
 				processedGrammars = append(processedGrammars, ParsedGrammar{
 					GeneralTag: &tag,
@@ -240,7 +430,7 @@ func (rp *RegexpParser) Parse(input [][2]string) ([]ParsedGrammar, error) {
 			}
 
 			parsedWords = append(parsedWords, word)
-			nfa.AlreadyOnFinal = res
+			nfaGrammar.AlreadyOnFinal = res
 		}
 
 		if !validOnPriority {
@@ -256,6 +446,27 @@ func (rp *RegexpParser) Parse(input [][2]string) ([]ParsedGrammar, error) {
 
 			parsedWords = nil
 			processedTag = nil
+		}
+
+		if idxWord == len(input)-1 {
+			found := false
+			for _, nfaGrammar := range rp.nfaGrammar {
+				tag := nfaGrammar.Target
+
+				processedGrammars = append(processedGrammars, ParsedGrammar{
+					GeneralTag: &tag,
+					Words:      parsedWords,
+				})
+
+				found = true
+				break
+			}
+
+			if !found {
+				processedGrammars = append(processedGrammars, ParsedGrammar{
+					Words: parsedWords,
+				})
+			}
 		}
 	}
 	return processedGrammars, nil

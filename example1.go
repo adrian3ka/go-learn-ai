@@ -258,6 +258,7 @@ func main() {
 	nfa.PrintTransitionTable()
 
 	fmt.Println("If input a, b will go to final?", nfa.VerifyInputs(inputs))
+	fmt.Println("If input a, b will go to final?", nfa.VerifyInputs(inputs))
 
 	fmt.Println("========================= Information Extraction =============================")
 
@@ -274,7 +275,6 @@ func main() {
 	gp, err := grammar_parser.NewRegexpParser(grammar_parser.RegexpParserConfig{
 		Grammar: [][2]string{
 			{"NP", "{<NN>+}"}, //Chunking
-			//{"NP", "}<NN>+{"}, //Chinking
 		},
 	})
 
@@ -296,7 +296,7 @@ func main() {
 		}
 	}
 
-	fmt.Println("-----------------------------------------------------")
+	fmt.Println("-----------------------------------------------------------------------")
 	text = "Nama saya Adrian Eka Sanjaya ."
 
 	predictedValue, err = bigramTagger.Predict(text)
@@ -318,4 +318,5 @@ func main() {
 			fmt.Println("-> ", x.Words)
 		}
 	}
+	fmt.Println("-----------------------------------------------------------------------")
 }
