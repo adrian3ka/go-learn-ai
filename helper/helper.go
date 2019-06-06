@@ -1,7 +1,6 @@
 package helper
 
 import (
-	"fmt"
 	"reflect"
 	"regexp"
 	"strings"
@@ -15,7 +14,6 @@ func GetStringInBetween(str string, start string, end string) (result *string) {
 	}
 	s += len(start)
 	e := strings.Index(str, end)
-	fmt.Println(s, e)
 
 	if s == -1 || e == -1 {
 		return nil
