@@ -158,7 +158,12 @@ func handleOptional(input *HandleSymbolInput) (*nfa.NFA, []*nfa.State, error) {
 
 	newStates = append(newStates, state1)
 
-	err = input.NfaData.AddTransition(state1.Index, input.Tag, *state1)
+	var tags []string
+	tags = strings.Split(input.Tag, "|")
+
+	for _, tag := range tags {
+		err = input.NfaData.AddTransition(state1.Index, tag, *state1)
+	}
 
 	if err != nil {
 		return nil, nil, err
@@ -330,6 +335,8 @@ func convertGrammarToNfa(grammar string) (*nfa.NFA, error) {
 
 			grammar = strings.Replace(grammar, processedCharacter, "", 1)
 		}
+	} else if string(grammar[0]) == "}" && string(grammar[len(grammar)-1]) == "{" {
+
 	} else {
 		return nil, errors.New(InvalidGrammar)
 	}
@@ -367,10 +374,10 @@ type ParsedGrammar struct {
 }
 
 func (rp *RegexpParser) ResetAllNfa() error {
-	for _, nfaGrammar := range rp.nfaGrammar {
-		err := nfaGrammar.Nfa.Reset()
+	for idx, _ := range rp.nfaGrammar {
+		err := rp.nfaGrammar[idx].Nfa.Reset()
 
-		nfaGrammar.AlreadyOnFinal = false
+		rp.nfaGrammar[idx].AlreadyOnFinal = false
 
 		if err != nil {
 			return err
@@ -390,12 +397,11 @@ func (rp *RegexpParser) Parse(input [][2]string) ([]ParsedGrammar, error) {
 		processedTag = append(processedTag, word[1])
 
 		validOnPriority := false
-		for _, nfaGrammar := range rp.nfaGrammar {
+		for idx, _ := range rp.nfaGrammar {
 
-			res := nfaGrammar.Nfa.VerifyInputs(processedTag)
+			res := rp.nfaGrammar[idx].Nfa.VerifyInputs(processedTag)
 
-			processedTag = nil
-			currState, err := nfaGrammar.Nfa.GetCurrenteState()
+			currState, err := rp.nfaGrammar[idx].Nfa.GetCurrenteState()
 
 			if err != nil {
 				return nil, err
@@ -403,14 +409,14 @@ func (rp *RegexpParser) Parse(input [][2]string) ([]ParsedGrammar, error) {
 
 			lenState := uint64(len(currState))
 
-			if nfaGrammar.AlreadyOnFinal && lenState == 0 && !validOnPriority {
+			if rp.nfaGrammar[idx].AlreadyOnFinal && lenState == 0 && !validOnPriority {
 				err = rp.ResetAllNfa()
 
 				if err != nil {
 					return nil, err
 				}
 
-				tag := nfaGrammar.Target
+				tag := rp.nfaGrammar[idx].Target
 
 				processedGrammars = append(processedGrammars, ParsedGrammar{
 					GeneralTag: &tag,
@@ -420,18 +426,18 @@ func (rp *RegexpParser) Parse(input [][2]string) ([]ParsedGrammar, error) {
 				parsedWords = nil
 				processedTag = nil
 
-				parsedWords = append(parsedWords, word)
-
 				break
 			}
 
-			if lenState > 0 {
+			if lenState > 0 && !validOnPriority {
 				validOnPriority = true
 			}
 
-			parsedWords = append(parsedWords, word)
-			nfaGrammar.AlreadyOnFinal = res
+			rp.nfaGrammar[idx].AlreadyOnFinal = res
 		}
+
+		processedTag = nil
+		parsedWords = append(parsedWords, word)
 
 		if !validOnPriority {
 			err := rp.ResetAllNfa()
@@ -448,7 +454,7 @@ func (rp *RegexpParser) Parse(input [][2]string) ([]ParsedGrammar, error) {
 			processedTag = nil
 		}
 
-		if idxWord == len(input)-1 {
+		if idxWord == len(input)-1 && len(parsedWords) > 0 {
 			found := false
 			for _, nfaGrammar := range rp.nfaGrammar {
 				tag := nfaGrammar.Target
