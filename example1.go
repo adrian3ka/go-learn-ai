@@ -38,6 +38,13 @@ func main() {
 		"bisa beli tiket    kereta?",
 		"jual tiket apa  ya?",
 	}
+
+	corpuses["saldo"] = []string{
+		"halo aku mau isi saldo dong",
+		"eh mau topup dong bisa ga?",
+		"mau nambah saldo dong bisa gak",
+		"tolong bantu isi saldo dong 50 ribu",
+	}
 	err := wordVectorizer.Learn(corpuses)
 
 	if err != nil {
@@ -77,16 +84,18 @@ func main() {
 
 	predicted, err := multinomialNB.Predict([]string{
 		"mAu belI tiket kEreta doNg",
-		"z",
 		"jual pulsa ga ya?",
 		"mau beli tiket kereta pake pulsa bisa ga ya?",
+		"mau topup isi wallet dong",
 	})
 
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println(predicted)
+	for _, p := range predicted{
+		fmt.Println(p)
+	}
 
 	fmt.Println("============================== POS Tagger ====================================")
 	file, err := ioutil.ReadFile("tagged_corpus/Indonesian.txt")
