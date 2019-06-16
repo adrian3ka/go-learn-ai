@@ -96,8 +96,8 @@ func main() {
 		panic(err)
 	}
 
-	for _, p := range predicted {
-		fmt.Println(p)
+	for idx, p := range predicted {
+		fmt.Println(dataTest[idx], " >> ", p)
 	}
 
 	fmt.Println("============================== POS Tagger ====================================")
@@ -113,7 +113,7 @@ func main() {
 		Default: &defaultTag,
 	})
 
-	border := len(allTuple.Tuple) * 99 / 100
+	border := len(allTuple.Tuple) * 90 / 100
 	trainTuple := allTuple.Tuple[0:border]
 	testTuple := allTuple.Tuple[border:len(allTuple.Tuple)]
 
@@ -182,27 +182,8 @@ func main() {
 
 	fmt.Println("Recall Of Unigram Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
 
-	trigramTagger := tagger.NewNGramTagger(tagger.NGramTaggerConfig{
-		BackoffTagger: unigramTagger,
-		N:             3,
-	})
-
-	err = trigramTagger.Learn(trainTuple)
-
-	if err != nil {
-		panic(err)
-	}
-
-	predictedValue, err = trigramTagger.Predict(testSentence)
-
-	if err != nil {
-		panic(err)
-	}
-
-	fmt.Println("Recall Of Trigram Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
-
 	bigramTagger := tagger.NewNGramTagger(tagger.NGramTaggerConfig{
-		BackoffTagger: trigramTagger,
+		BackoffTagger: unigramTagger,
 		N:             2,
 	})
 
@@ -219,6 +200,25 @@ func main() {
 	}
 
 	fmt.Println("Recall Of Bigram Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
+
+	trigramTagger := tagger.NewNGramTagger(tagger.NGramTaggerConfig{
+		BackoffTagger: bigramTagger,
+		N:             3,
+	})
+
+	err = trigramTagger.Learn(trainTuple)
+
+	if err != nil {
+		panic(err)
+	}
+
+	predictedValue, err = trigramTagger.Predict(testSentence)
+
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println("Recall Of Trigram Tagger With Backoff >> ", helper.CalculateRecall(testTaggedWord, predictedValue))
 
 	fmt.Println("=================================== NFA ======================================")
 	nfa, state0, err := nfa2.NewNFA("State 0", false)
