@@ -12,14 +12,18 @@ import (
 //- CHUNGKING : { }
 
 const (
-	CannotCreateNFAFromGrammar = "Cannot Create NFA From Grammar"
-	InvalidGrammar             = "Invalid Grammar"
-	NilState                   = "Nil State"
-	OneOrMore                  = "+"
-	NoneOrMore                 = "*"
-	Optional                   = "?"
-	OpeningTag                 = "<"
-	ClosingTag                 = ">"
+	CannotCreateNFAFromGrammar    = "Cannot Create NFA From Grammar"
+	InvalidGrammar                = "Invalid Grammar"
+	NilState                      = "Nil State"
+	ChinkingInitialStateMustBeNil = "Chinking Initial State Must Be Nil"
+	OneOrMore                     = "+"
+	NoneOrMore                    = "*"
+	Optional                      = "?"
+	OpeningTag                    = "<"
+	ClosingTag                    = ">"
+
+	Chunking = "Chunking"
+	Chinking = "Chinking"
 )
 
 type BasicParser interface {
@@ -30,6 +34,7 @@ type NfaGrammar struct {
 	Nfa            nfa.NFA
 	Target         string
 	AlreadyOnFinal bool
+	Type           string
 }
 
 type RegexpParser struct {
@@ -121,13 +126,11 @@ func handleBasic(input *HandleSymbolInput) (*nfa.NFA, []*nfa.State, error) {
 	}
 
 	for idx, _ := range input.PreviousState {
-		newStates = append(newStates, input.PreviousState[idx])
 		err = input.NfaData.AddTransition(input.PreviousState[idx].Index, input.Tag, *state1)
 
 		if err != nil {
 			return nil, nil, err
 		}
-
 	}
 
 	return input.NfaData, newStates, nil
@@ -223,7 +226,6 @@ func handleOneOrMore(input *HandleSymbolInput) (*nfa.NFA, []*nfa.State, error) {
 		if err != nil {
 			return nil, nil, err
 		}
-
 	}
 
 	newStates = append(newStates, state2)
@@ -243,39 +245,161 @@ func handleOneOrMore(input *HandleSymbolInput) (*nfa.NFA, []*nfa.State, error) {
 	return input.NfaData, newStates, nil
 }
 
-func convertGrammarToNfa(grammar string) (*nfa.NFA, error) {
+func handleInitialChunking(input *HandleSymbolInput) (*nfa.NFA, []*nfa.State, error) {
+	var newStates []*nfa.State
+	var state1 *nfa.State
+	var err error
+
+	if input.NfaData == nil {
+		input.NfaData, state1, err = nfa.NewNFA(nfa.Negate+input.Tag, false)
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+	} else {
+		return nil, nil, errors.New(ChinkingInitialStateMustBeNil)
+	}
+
+	var tags []string
+	tags = strings.Split(input.Tag, "|")
+
+	for _, tag := range tags {
+		err = input.NfaData.AddTransition(state1.Index, nfa.Negate+tag, *state1)
+	}
+
+	newStates = append(newStates, state1)
+
+	return input.NfaData, newStates, nil
+}
+
+func handleEndOfChunking(input *HandleSymbolInput) (*nfa.NFA, []*nfa.State, error) {
+	var newStates []*nfa.State
+	var state1 *nfa.State
+	var err error
+
+	if input.NfaData == nil {
+		input.NfaData, state1, err = nfa.NewNFA(nfa.Negate+input.Tag, true)
+
+		if err != nil {
+			return nil, nil, err
+		}
+
+	} else {
+		state1, err = input.NfaData.AddState(&nfa.State{
+			Name: nfa.Negate + input.Tag,
+		}, true)
+
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	var tags []string
+	tags = strings.Split(input.Tag, "|")
+
+	for _, tag := range tags {
+		err = input.NfaData.AddTransition(state1.Index, nfa.Negate+tag, *state1)
+	}
+
+	newStates = append(newStates, state1)
+
+	for idx, _ := range input.PreviousState {
+		err = input.NfaData.AddTransition(input.PreviousState[idx].Index, input.Tag, *state1)
+
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return input.NfaData, newStates, nil
+}
+
+func convertGrammarToNfa(grammar string) (*nfa.NFA, *string, error) {
 	var newNFA *nfa.NFA
+	var grammarType string
 	var err error
 	var previousState []*nfa.State
+	var processedTag string
+	var tag *string
+
+	var nextTag *string
+	isFinal := false
 
 	if string(grammar[0]) == "{" && string(grammar[len(grammar)-1]) == "}" {
+		grammarType = Chunking
+	} else if string(grammar[0]) == "}" && string(grammar[len(grammar)-1]) == "{" {
+		grammarType = Chinking
+	} else {
+		return nil, nil, errors.New(InvalidGrammar)
+	}
+
+	if grammarType == Chunking {
 		grammar = strings.Replace(grammar, "{", "", 1)
 		grammar = strings.Replace(grammar, "}", "", 1)
+	} else if grammarType == Chinking {
+		grammar = strings.Replace(grammar, "}", "", 1)
+		grammar = strings.Replace(grammar, "{", "", 1)
 
-		var nextTag *string
-		isFinal := false
+		tag := helper.GetStringInBetween(grammar, OpeningTag, ClosingTag)
 
-		for {
-			tag := helper.GetStringInBetween(grammar, OpeningTag, ClosingTag)
+		if tag == nil {
+			return nil, nil, nil
+		}
 
-			if tag == nil {
-				break
+		nextTag = helper.GetStringInBetween(grammar, "<", ">")
+		isFinal = false
+
+		newNFA, previousState, err = handleInitialChunking(&HandleSymbolInput{
+			NfaData:       newNFA,
+			Tag:           *tag,
+			IsFinal:       isFinal,
+			PreviousState: previousState,
+		})
+
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	for {
+		tag = helper.GetStringInBetween(grammar, OpeningTag, ClosingTag)
+
+		if tag == nil {
+			break
+		}
+
+		processedTag = OpeningTag + *tag + ClosingTag
+
+		grammar = strings.Replace(grammar, processedTag, "", 1)
+
+		nextTag = helper.GetStringInBetween(grammar, "<", ">")
+
+		if nextTag == nil && grammarType != Chinking {
+			isFinal = true
+		}
+
+		processedCharacter := ""
+
+		if len(grammar) == 0 {
+			newNFA, previousState, err = handleBasic(&HandleSymbolInput{
+				NfaData:       newNFA,
+				Tag:           *tag,
+				IsFinal:       isFinal,
+				PreviousState: previousState,
+			})
+
+			if err != nil {
+				return nil, nil, err
 			}
 
-			processedTag := OpeningTag + *tag + ClosingTag
-
-			grammar = strings.Replace(grammar, processedTag, "", 1)
-
-			nextTag = helper.GetStringInBetween(grammar, "<", ">")
-
-			if nextTag == nil {
-				isFinal = true
-			}
-
-			processedCharacter := ""
-
-			if len(grammar) == 0 {
-				newNFA, previousState, err = handleBasic(&HandleSymbolInput{
+			newNFA.PrintTransitionTable()
+			break
+		}
+		processed := false
+		for idx, _ := range grammar {
+			if string(grammar[idx]) == OneOrMore {
+				newNFA, previousState, err = handleOneOrMore(&HandleSymbolInput{
 					NfaData:       newNFA,
 					Tag:           *tag,
 					IsFinal:       isFinal,
@@ -283,71 +407,80 @@ func convertGrammarToNfa(grammar string) (*nfa.NFA, error) {
 				})
 
 				if err != nil {
-					return nil, err
+					return nil, nil, err
 				}
 
+				processedCharacter += OneOrMore
+				processed = true
+			} else if string(grammar[idx]) == Optional {
+				newNFA, previousState, err = handleOptional(&HandleSymbolInput{
+					NfaData:       newNFA,
+					Tag:           *tag,
+					IsFinal:       isFinal,
+					PreviousState: previousState,
+				})
+
+				if err != nil {
+					return nil, nil, err
+				}
+
+				processedCharacter += Optional
+				processed = true
+			} else if string(grammar[idx]) == NoneOrMore {
+				newNFA, previousState, err = handleNoneOrMore(&HandleSymbolInput{
+					NfaData:       newNFA,
+					Tag:           *tag,
+					IsFinal:       isFinal,
+					PreviousState: previousState,
+				})
+
+				if err != nil {
+					return nil, nil, err
+				}
+
+				processedCharacter += NoneOrMore
+				processed = true
+			} else if string(grammar[idx]) == OpeningTag {
+				if !processed {
+					newNFA, previousState, err = handleBasic(&HandleSymbolInput{
+						NfaData:       newNFA,
+						Tag:           *tag,
+						IsFinal:       isFinal,
+						PreviousState: previousState,
+					})
+
+					if err != nil {
+						return nil, nil, err
+					}
+				}
 				break
 			}
-			for idx, _ := range grammar {
-				if string(grammar[idx]) == OneOrMore {
-					newNFA, previousState, err = handleOneOrMore(&HandleSymbolInput{
-						NfaData:       newNFA,
-						Tag:           *tag,
-						IsFinal:       isFinal,
-						PreviousState: previousState,
-					})
-
-					if err != nil {
-						return nil, err
-					}
-
-					processedCharacter += OneOrMore
-				} else if string(grammar[idx]) == Optional {
-					newNFA, previousState, err = handleOptional(&HandleSymbolInput{
-						NfaData:       newNFA,
-						Tag:           *tag,
-						IsFinal:       isFinal,
-						PreviousState: previousState,
-					})
-
-					if err != nil {
-						return nil, err
-					}
-
-					processedCharacter += Optional
-				} else if string(grammar[idx]) == NoneOrMore {
-					newNFA, previousState, err = handleNoneOrMore(&HandleSymbolInput{
-						NfaData:       newNFA,
-						Tag:           *tag,
-						IsFinal:       isFinal,
-						PreviousState: previousState,
-					})
-
-					if err != nil {
-						return nil, err
-					}
-
-					processedCharacter += NoneOrMore
-				} else if string(grammar[idx]) == OpeningTag {
-					break
-				}
-			}
-
-			grammar = strings.Replace(grammar, processedCharacter, "", 1)
 		}
-	} else if string(grammar[0]) == "}" && string(grammar[len(grammar)-1]) == "{" {
 
-	} else {
-		return nil, errors.New(InvalidGrammar)
+		grammar = strings.Replace(grammar, processedCharacter, "", 1)
 	}
-	return newNFA, nil
+
+	if grammarType == Chinking {
+		newNFA, previousState, err = handleEndOfChunking(&HandleSymbolInput{
+			NfaData:       newNFA,
+			Tag:           *tag,
+			IsFinal:       true,
+			PreviousState: previousState,
+		})
+
+		if err != nil {
+			return nil, nil, err
+		}
+	}
+
+	return newNFA, &grammarType, nil
 }
 
 func NewRegexpParser(config RegexpParserConfig) (*RegexpParser, error) {
 	var nfas []*NfaGrammar
 
 	for _, g := range config.Grammar {
-		newNfa, err := convertGrammarToNfa(g[1])
+		newNfa, grammarType, err := convertGrammarToNfa(g[1])
 
 		if err != nil {
 			return nil, err
@@ -360,6 +493,7 @@ func NewRegexpParser(config RegexpParserConfig) (*RegexpParser, error) {
 		newNfa.PrintTransitionTable()
 		nfas = append(nfas, &NfaGrammar{
 			Nfa:    *newNfa,
+			Type:   *grammarType,
 			Target: g[0],
 		})
 	}

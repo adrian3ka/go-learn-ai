@@ -10,6 +10,8 @@ import (
 const (
 	StateNotFound = "State Not Found"
 	InvalidInput  = "Invalid Input"
+
+	Negate = "!"
 )
 
 type transitionInput struct {
@@ -128,6 +130,18 @@ func (d *NFA) Input(testInput string) ([]State, error) {
 		} else {
 			//dead state, remove in current state
 			//do nothing.
+			for key, _ := range d.transition {
+				var temp string
+				if string(key.input[0]) != Negate {
+					continue
+				}
+				temp = strings.Replace(key.input, Negate, "", 1)
+				if temp != testInput {
+					for dst, _ := range d.transition[key] {
+						updateCurrentState[dst] = true
+					}
+				}
+			}
 		}
 	}
 
@@ -177,9 +191,9 @@ func (d *NFA) PrintTransitionTable() {
 	//list all inputs
 	var inputList []string
 
-	fmt.Printf("%10s|", "")
+	fmt.Printf("%16s|", "")
 	for key, _ := range d.inputMap {
-		fmt.Printf("%10s|", key)
+		fmt.Printf("%15s|", key)
 		inputList = append(inputList, key)
 	}
 
@@ -196,9 +210,9 @@ func (d *NFA) PrintTransitionTable() {
 			}
 		}
 		if isFinal {
-			fmt.Printf("*%9d|", state.Index)
+			fmt.Printf("*%4d %10s|", state.Index, state.Name)
 		} else {
-			fmt.Printf("%10d|", state.Index)
+			fmt.Printf("%5d %10s|", state.Index, state.Name)
 		}
 		for _, key := range inputList {
 			checkInput := transitionInput{srcStateIndex: state.Index, input: key}
@@ -208,9 +222,9 @@ func (d *NFA) PrintTransitionTable() {
 				for val, _ := range dstState {
 					temp = append(temp, strconv.FormatUint(val.Index, 10))
 				}
-				fmt.Printf("%10s|", strings.Join(temp, ","))
+				fmt.Printf("%15s|", strings.Join(temp, ","))
 			} else {
-				fmt.Printf("%10s|", "NA")
+				fmt.Printf("%15s|", "NA")
 			}
 		}
 		fmt.Printf("\n")
