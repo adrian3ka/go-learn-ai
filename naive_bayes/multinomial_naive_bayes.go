@@ -32,7 +32,29 @@ func NewMultinomialNaiveBayes(cfg MultinomialNaiveBayesConfig) MultinomialNaiveB
 	return multinomialNaiveBayes
 }
 
-func (nb MultinomialNaiveBayes) Predict(inputs interface{}) ([]map[string]float64, error) {
+func (nb MultinomialNaiveBayes) Predict(inputs interface{}) ([]string, error) {
+	var predicted []string
+	probabilities, err := nb.PredictProbability(inputs)
+
+	if err != nil {
+		return nil, err
+	}
+
+	for _, prob := range probabilities {
+		highestProb := float64(0)
+		var selectedClass string
+		for key, value := range prob {
+			if highestProb < value {
+				selectedClass = key
+			}
+		}
+		predicted = append(predicted, selectedClass)
+	}
+
+	return predicted, nil
+}
+
+func (nb MultinomialNaiveBayes) PredictProbability(inputs interface{}) ([]map[string]float64, error) {
 	evaluatedInputs, err := nb.evaluator.EvaluateInput(inputs)
 
 	if err != nil {

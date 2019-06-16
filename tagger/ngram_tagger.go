@@ -84,6 +84,7 @@ func (u *UnigramTagger) Learn(tuple [][][2]string) error {
 		for tag, count := range tm {
 			if maxCount < count {
 				selectedTag = tag
+				maxCount = count
 			}
 		}
 		u.mapTag[word] = selectedTag
@@ -220,6 +221,7 @@ func (n *NGramTagger) Learn(tuple [][][2]string) error {
 		for tag, count := range tm {
 			if maxCount < count {
 				selectedTag = tag
+				maxCount = count
 			}
 		}
 		n.mapTag[word] = selectedTag

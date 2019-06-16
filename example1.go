@@ -82,18 +82,21 @@ func main() {
 		Evaluator: tfIdf,
 	})
 
-	predicted, err := multinomialNB.Predict([]string{
+	dataTest := []string{
 		"mAu belI tiket kEreta doNg",
 		"jual pulsa ga ya?",
 		"mau beli tiket kereta pake pulsa bisa ga ya?",
 		"mau topup isi wallet dong",
-	})
+		"saya mau beli pulsa dong",
+	}
+
+	predicted, err := multinomialNB.Predict(dataTest)
 
 	if err != nil {
 		panic(err)
 	}
 
-	for _, p := range predicted{
+	for _, p := range predicted {
 		fmt.Println(p)
 	}
 
