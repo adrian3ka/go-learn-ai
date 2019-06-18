@@ -2,7 +2,7 @@ package main
 
 import (
 	"fmt"
-	"github.com/adrian/go-learn-ai/grammar_parser"
+	"github.com/adrian3ka/go-learn-ai/grammar_parser"
 )
 
 func main() {

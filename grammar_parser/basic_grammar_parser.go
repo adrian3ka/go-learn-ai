@@ -2,8 +2,8 @@ package grammar_parser
 
 import (
 	"errors"
-	"github.com/adrian/go-learn-ai/helper"
-	"github.com/adrian/go-learn-ai/nfa"
+	"github.com/adrian3ka/go-learn-ai/helper"
+	"github.com/adrian3ka/go-learn-ai/nfa"
 	"strings"
 )
 

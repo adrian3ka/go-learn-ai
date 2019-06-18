@@ -1,7 +1,7 @@
 package tagger
 
 import (
-	"github.com/adrian/go-learn-ai/helper"
+	"github.com/adrian3ka/go-learn-ai/helper"
 	"regexp"
 	"strings"
 )

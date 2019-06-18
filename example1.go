@@ -2,14 +2,14 @@ package main
 
 import (
 	"fmt"
-	"github.com/adrian/go-learn-ai/grammar_parser"
-	"github.com/adrian/go-learn-ai/helper"
-	"github.com/adrian/go-learn-ai/naive_bayes"
-	nfa2 "github.com/adrian/go-learn-ai/nfa"
-	"github.com/adrian/go-learn-ai/tagger"
-	"github.com/adrian/go-learn-ai/term_frequency"
-	"github.com/adrian/go-learn-ai/tf_idf"
-	"github.com/adrian/go-learn-ai/word_vectorizer"
+	"github.com/adrian3ka/go-learn-ai/grammar_parser"
+	"github.com/adrian3ka/go-learn-ai/helper"
+	"github.com/adrian3ka/go-learn-ai/naive_bayes"
+	nfa2 "github.com/adrian3ka/go-learn-ai/nfa"
+	"github.com/adrian3ka/go-learn-ai/tagger"
+	"github.com/adrian3ka/go-learn-ai/term_frequency"
+	"github.com/adrian3ka/go-learn-ai/tf_idf"
+	"github.com/adrian3ka/go-learn-ai/word_vectorizer"
 	"io/ioutil"
 	"log"
 )
@@ -44,6 +44,13 @@ func main() {
 		"eh mau topup dong bisa ga?",
 		"mau nambah saldo dong bisa gak",
 		"tolong bantu isi saldo dong 50 ribu",
+	}
+
+	corpuses["hotel"] = []string{
+		"ada kamar kosong ga ya di tempat kamu?",
+		"eh mau sewa 1 kamar dong",
+		"eh  mau sewa ruang meeting dong",
+		"eh fasilitas di hotel kamu apa aja ya?",
 	}
 	err := wordVectorizer.Learn(corpuses)
 
@@ -88,6 +95,7 @@ func main() {
 		"mau beli tiket kereta pake pulsa bisa ga ya?",
 		"mau topup isi wallet dong",
 		"saya mau beli pulsa dong",
+		"Ada ruang meeting ga di hotel ini ?",
 	}
 
 	predicted, err := multinomialNB.Predict(dataTest)
