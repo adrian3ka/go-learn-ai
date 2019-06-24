@@ -12,6 +12,7 @@ import (
 	"github.com/adrian3ka/go-learn-ai/word_vectorizer"
 	"io/ioutil"
 	"log"
+	"os"
 )
 
 func main() {
@@ -109,7 +110,12 @@ func main() {
 	}
 
 	fmt.Println("============================== POS Tagger ====================================")
-	file, err := ioutil.ReadFile("tagged_corpus/Indonesian.txt")
+	dir, err := os.Getwd()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	file, err := ioutil.ReadFile(dir + "/go-learn-ai/tagged_corpus/Indonesian.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
